@@ -1,0 +1,380 @@
+package com.example.views;
+
+import com.example.data.AppointmentDetailsDTO;
+import com.example.data.BookingResult;
+import com.example.data.HarmonogramDTO;
+import com.example.data.UserDTO;
+import com.example.services.ReceptionService;
+import com.example.security.UserSession;
+import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.datepicker.DatePicker;
+import com.vaadin.flow.component.dialog.Dialog;
+import com.vaadin.flow.component.formlayout.FormLayout;
+import com.vaadin.flow.component.html.*;
+import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.notification.NotificationVariant;
+import com.vaadin.flow.component.orderedlayout.FlexLayout;
+import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
+import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.radiobutton.RadioButtonGroup;
+import com.vaadin.flow.component.select.Select;
+import com.vaadin.flow.component.textfield.EmailField;
+import com.vaadin.flow.component.textfield.TextArea;
+import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.data.value.ValueChangeMode;
+import com.vaadin.flow.router.*;
+
+import java.sql.SQLException;
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
+@Route(value = "reception-schedule", layout = MainLayout.class)
+@PageTitle("Harmonogram Lekarza")
+public class ReceptionScheduleView extends VerticalLayout implements HasUrlParameter<Integer> {
+
+    private final ReceptionService receptionService = new ReceptionService();
+    private DatePicker datePicker;
+    private FlexLayout slotsContainer;
+    private H2 headerTitle;
+
+    private int currentDoctorId;
+
+    public ReceptionScheduleView() {
+        UserSession user = UserSession.getLoggedInUser();
+        if (user == null || (!"Rejestracja".equals(user.getRola()) && !"Admin".equals(user.getRola()))) {
+            add(new H2("Brak dostępu"));
+            return;
+        }
+
+        setSizeFull();
+        setPadding(true);
+
+        Button backButton = new Button("Wróć do listy", VaadinIcon.ARROW_LEFT.create(), e ->
+                getUI().ifPresent(ui -> ui.navigate(DoctorsListView.class))
+        );
+
+        headerTitle = new H2("Harmonogram");
+
+        datePicker = new DatePicker("Data");
+        datePicker.setValue(LocalDate.now());
+        datePicker.setLocale(new Locale("pl", "PL"));
+        datePicker.addValueChangeListener(e -> loadSchedule());
+
+        slotsContainer = new FlexLayout();
+        slotsContainer.setFlexWrap(FlexLayout.FlexWrap.WRAP);
+        slotsContainer.getStyle().set("gap", "15px");
+        slotsContainer.setWidthFull();
+
+        HorizontalLayout topBar = new HorizontalLayout(backButton, datePicker);
+        topBar.setAlignItems(Alignment.END);
+
+        add(headerTitle, topBar, slotsContainer);
+    }
+
+    @Override
+    public void setParameter(BeforeEvent event, Integer doctorId) {
+        // Naprawa NPE: Sprawdzenie czy komponenty istnieją
+        if (headerTitle == null) {
+            return;
+        }
+
+        if (doctorId == null) return;
+        this.currentDoctorId = doctorId;
+        try {
+            UserDTO doctor = receptionService.getDoctorById(currentDoctorId);
+            if (doctor != null) {
+                headerTitle.setText("Grafik: " + doctor.getImie() + " " + doctor.getNazwisko() +
+                        (doctor.getSpecjalizacja() != null ? " (" + doctor.getSpecjalizacja() + ")" : ""));
+            }
+            loadSchedule();
+        } catch (SQLException e) {
+            Notification.show("Błąd: " + e.getMessage());
+        }
+    }
+
+    private void loadSchedule() {
+        if (slotsContainer == null || datePicker == null) return;
+
+        slotsContainer.removeAll();
+        LocalDate date = datePicker.getValue();
+        if (date == null) return;
+
+        try {
+            List<HarmonogramDTO> slots = receptionService.getScheduleForDoctor(currentDoctorId, date);
+            if (slots.isEmpty()) {
+                slotsContainer.add(new Span("Brak terminów w tym dniu."));
+                return;
+            }
+            for (HarmonogramDTO slot : slots) slotsContainer.add(createSlotCard(slot));
+        } catch (SQLException e) {
+            Notification.show("Błąd bazy: " + e.getMessage());
+        }
+    }
+
+    private Component createSlotCard(HarmonogramDTO slot) {
+        Div card = new Div();
+        card.getStyle().set("border", "1px solid #e0e0e0").set("border-radius", "8px").set("padding", "15px").set("width", "160px").set("cursor", "pointer").set("text-align", "center").set("box-shadow", "0 2px 4px rgba(0,0,0,0.1)");
+
+        // --- LOGIKA WYŚWIETLANIA ---
+        // Service zwraca "Wolny" tylko jeśli NIE MA WIZYTY w bazie.
+        // Jeśli jest wizyta, zwraca np. "Oczekujaca".
+        boolean isTaken = !"Wolny".equalsIgnoreCase(slot.getStatus());
+
+        if (isTaken) {
+            card.getStyle().set("background-color", "#ffebee").set("border-color", "#ef9a9a"); // Czerwony
+        } else {
+            card.getStyle().set("background-color", "#e8f5e9").set("border-color", "#a5d6a7"); // Zielony
+        }
+
+        card.add(new H4(slot.getGodzina().toString()), new Span(isTaken ? "Zajęty" : "Wolny"));
+
+        if (isTaken && slot.getNazwiskoPacjenta() != null) {
+            Span pLabel = new Span(slot.getImiePacjenta() + " " + slot.getNazwiskoPacjenta());
+            pLabel.getStyle().set("display", "block").set("font-size", "0.85em");
+            card.add(pLabel);
+        }
+
+        card.addClickListener(e -> {
+            if (isTaken) showAppointmentDetails(slot);
+            else openBookingDialog(slot);
+        });
+        return card;
+    }
+
+    private void openBookingDialog(HarmonogramDTO slot) {
+        Dialog dialog = new Dialog();
+        dialog.setHeaderTitle("Umów wizytę: " + slot.getGodzina());
+        dialog.setWidth("650px");
+
+        VerticalLayout contentLayout = new VerticalLayout();
+        RadioButtonGroup<String> modeSelect = new RadioButtonGroup<>();
+        modeSelect.setLabel("Wybierz pacjenta");
+        modeSelect.setItems("Wybierz z listy", "Nowy pacjent");
+        modeSelect.setValue("Wybierz z listy");
+
+        // 1. Wybór istniejącego
+        VerticalLayout existingPatientLayout = new VerticalLayout();
+        existingPatientLayout.setPadding(false);
+        ComboBox<UserDTO> patientCombo = new ComboBox<>("Szukaj pacjenta");
+        patientCombo.setWidthFull();
+        patientCombo.setItemLabelGenerator(u -> u.getImie() + " " + u.getNazwisko() + " (" + u.getPesel() + ")");
+        try {
+            patientCombo.setItems(receptionService.getAllPatients());
+        } catch (SQLException e) { /* Ignored */ }
+        existingPatientLayout.add(patientCombo);
+
+        // 2. Formularz nowego
+        FormLayout newPatientForm = new FormLayout();
+        newPatientForm.setVisible(false);
+
+        TextField imieField = new TextField("Imię");
+        TextField nazwiskoField = new TextField("Nazwisko");
+
+        TextField peselField = new TextField("PESEL");
+        peselField.setMaxLength(11);
+        peselField.setHelperText("Dokładnie 11 cyfr");
+        peselField.setValueChangeMode(ValueChangeMode.EAGER);
+        peselField.addValueChangeListener(e -> {
+            if (!e.getValue().matches("\\d*")) peselField.setValue(e.getOldValue());
+        });
+
+        TextField telField = new TextField("Telefon");
+        telField.setMaxLength(15);
+        telField.setHelperText("9-15 cyfr (opcjonalnie z '+')");
+        telField.setValueChangeMode(ValueChangeMode.EAGER);
+        telField.addValueChangeListener(e -> {
+            String val = e.getValue();
+            if (!val.matches("^[+]?[0-9]*$")) telField.setValue(e.getOldValue());
+        });
+
+        EmailField emailField = new EmailField("Email");
+        emailField.setErrorMessage("Podaj poprawny format email");
+
+        TextField adresField = new TextField("Adres");
+
+        newPatientForm.add(imieField, nazwiskoField, peselField, telField, emailField, adresField);
+
+        modeSelect.addValueChangeListener(e -> {
+            boolean isNew = "Nowy pacjent".equals(e.getValue());
+            existingPatientLayout.setVisible(!isNew);
+            newPatientForm.setVisible(isNew);
+        });
+
+        // 3. Powód wizyty
+        new Hr();
+        ComboBox<String> reasonCombo = new ComboBox<>("Powód wizyty");
+        reasonCombo.setWidthFull();
+        TextArea customReasonField = new TextArea("Opisz powód wizyty");
+        customReasonField.setWidthFull();
+        customReasonField.setVisible(false);
+
+        Map<Integer, String> reasonsMap;
+        try {
+            reasonsMap = receptionService.getVisitReasons(currentDoctorId);
+            reasonCombo.setItems(reasonsMap.values());
+        } catch (SQLException e) {
+            reasonsMap = Map.of();
+            Notification.show("Błąd SQL: " + e.getMessage());
+        }
+        final Map<Integer, String> finalReasonsMap = reasonsMap;
+
+        reasonCombo.addValueChangeListener(e -> {
+            String selected = e.getValue();
+            customReasonField.setVisible(selected != null && selected.contains("Inny"));
+        });
+
+        // 4. Zapis
+        Button saveButton = new Button("Zatwierdź", e -> {
+            try {
+                Integer reasonId = null;
+                if (reasonCombo.getValue() != null) {
+                    for (Map.Entry<Integer, String> entry : finalReasonsMap.entrySet()) {
+                        if (entry.getValue().equals(reasonCombo.getValue())) {
+                            reasonId = entry.getKey();
+                            break;
+                        }
+                    }
+                }
+                if (reasonId == null) {
+                    Notification.show("Wybierz powód wizyty"); return;
+                }
+
+                String customNote = customReasonField.getValue();
+                if (reasonId == -1 && (customNote == null || customNote.trim().isEmpty())) {
+                    Notification.show("Opis powodu wymagany dla 'Inny'"); return;
+                }
+
+                BookingResult result;
+
+                if ("Wybierz z listy".equals(modeSelect.getValue())) {
+                    if (patientCombo.getValue() == null) {
+                        Notification.show("Wybierz pacjenta"); return;
+                    }
+                    result = receptionService.bookAppointment(
+                            slot.getIdTerminu(), patientCombo.getValue().getId(),
+                            null, null, null, null, null, null,
+                            reasonId, customNote
+                    );
+                } else {
+                    if (imieField.isEmpty() || nazwiskoField.isEmpty()) {
+                        Notification.show("Imię i Nazwisko są wymagane"); return;
+                    }
+                    result = receptionService.bookAppointment(
+                            slot.getIdTerminu(), null,
+                            imieField.getValue(), nazwiskoField.getValue(), peselField.getValue(),
+                            telField.getValue(), emailField.getValue(), adresField.getValue(),
+                            reasonId, customNote
+                    );
+                }
+
+                dialog.close();
+                loadSchedule();
+                if (result != null && result.getGeneratedLogin() != null) {
+                    showCredentialsDialog(result.getGeneratedLogin(), result.getGeneratedPassword());
+                } else {
+                    Notification.show("Wizyta umówiona!").addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+                }
+
+            } catch (ReceptionService.ValidationException ex) {
+                Notification.show(ex.getMessage()).addThemeVariants(NotificationVariant.LUMO_ERROR);
+            } catch (SQLException ex) {
+                Notification.show(ex.getMessage()).addThemeVariants(NotificationVariant.LUMO_ERROR);
+            }
+        });
+        saveButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+
+        dialog.add(new VerticalLayout(modeSelect, existingPatientLayout, newPatientForm, reasonCombo, customReasonField));
+        dialog.getFooter().add(new Button("Anuluj", ev -> dialog.close()), saveButton);
+        dialog.open();
+    }
+
+    private void showCredentialsDialog(String login, String password) {
+        Dialog dialog = new Dialog();
+        dialog.setHeaderTitle("Konto Pacjenta");
+        TextField l = new TextField("Login"); l.setValue(login); l.setReadOnly(true); l.setWidthFull();
+        TextField p = new TextField("Hasło"); p.setValue(password); p.setReadOnly(true); p.setWidthFull();
+        dialog.add(new VerticalLayout(new Span("Przekaż dane pacjentowi:"), l, p));
+        dialog.getFooter().add(new Button("OK", e -> dialog.close()));
+        dialog.open();
+    }
+
+    private void showAppointmentDetails(HarmonogramDTO slot) {
+        Dialog dialog = new Dialog();
+        dialog.setHeaderTitle("Szczegóły wizyty: " + slot.getGodzina());
+        dialog.setWidth("500px");
+
+        try {
+            HarmonogramDTO details = receptionService.getAppointmentDetails(slot.getIdTerminu());
+
+            if (details == null) {
+                Notification.show("Brak wizyty (termin jest wolny).");
+                return;
+            }
+
+            // Imię i Nazwisko
+            TextField patientName = new TextField("Pacjent");
+            patientName.setValue(details.getImiePacjenta() + " " + details.getNazwiskoPacjenta());
+            patientName.setReadOnly(true);
+            patientName.setWidthFull();
+
+            // --- NOWE POLE: PESEL ---
+            TextField peselField = new TextField("PESEL");
+            peselField.setValue(details.getPesel() != null ? details.getPesel() : "Brak");
+            peselField.setReadOnly(true);
+            peselField.setWidthFull();
+            peselField.setSuffixComponent(VaadinIcon.USER_CARD.create());
+            // ------------------------
+
+            // Telefon
+            TextField patientPhone = new TextField("Numer telefonu");
+            patientPhone.setValue(details.getTelefon() != null ? details.getTelefon() : "Brak");
+            patientPhone.setReadOnly(true);
+            patientPhone.setWidthFull();
+            patientPhone.setSuffixComponent(VaadinIcon.PHONE.create());
+
+            // Status
+            Select<String> statusSelect = new Select<>();
+            statusSelect.setLabel("Status wizyty");
+            statusSelect.setItems("Oczekujaca", "Zrealizowana", "Anulowana", "Nieobecny");
+            statusSelect.setValue(details.getStatus());
+            statusSelect.setWidthFull();
+
+            statusSelect.addValueChangeListener(e -> {
+                if ("Anulowana".equals(e.getValue())) {
+                    Notification.show("Wybranie 'Anulowana' zwolni termin (usunie wizytę).", 3000, Notification.Position.MIDDLE);
+                }
+            });
+
+            Button saveStatusBtn = new Button("Zmień status", e -> {
+                try {
+                    receptionService.updateAppointmentStatus(slot.getIdTerminu(), statusSelect.getValue());
+                    Notification.show("Status zaktualizowany").addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+                    dialog.close();
+                    loadSchedule();
+                } catch (SQLException ex) {
+                    Notification.show("Błąd aktualizacji: " + ex.getMessage());
+                }
+            });
+            saveStatusBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+
+            // Dodajemy peselField do layoutu
+            VerticalLayout layout = new VerticalLayout(patientName, peselField, patientPhone, statusSelect);
+            layout.setPadding(false);
+
+            dialog.add(layout);
+            dialog.getFooter().add(new Button("Zamknij", e -> dialog.close()));
+            dialog.getFooter().add(saveStatusBtn);
+
+            dialog.open();
+
+        } catch (SQLException e) {
+            Notification.show("Błąd pobierania danych: " + e.getMessage());
+        }
+    }
+}
