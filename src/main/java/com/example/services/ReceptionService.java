@@ -109,11 +109,11 @@ public class ReceptionService {
                         "       l.Start_pracy, l.Koniec_pracy " +
                         "FROM Termin t " +
                         "JOIN Lekarz l ON t.id_lekarza = l.id_uzytkownika " +
-                        "LEFT JOIN Rezerwacja r ON t.id_terminu = r.id_terminu " +
+                        "LEFT JOIN Rezerwacja r ON t.id_terminu = r.id_terminu AND r.status_rezerwacji != 'Anulowana' " +
                         "LEFT JOIN Pacjent p ON r.id_pacjenta = p.id_uzytkownika " +
                         "LEFT JOIN Uzytkownik u ON p.id_uzytkownika = u.id_uzytkownika " +
                         "LEFT JOIN Wizyta w ON r.id_rezerwacji = w.id_rezerwacji " +
-                        "WHERE t.id_lekarza = ? AND t.data = ? AND (r.Status_rezerwacji IS NULL OR r.Status_rezerwacji != 'Anulowana')" +
+                        "WHERE t.id_lekarza = ? AND t.data = ? " +
                         "ORDER BY t.godzina";
 
         try (Connection conn = DatabaseConnectionService.getConnection();
