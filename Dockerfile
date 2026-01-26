@@ -1,3 +1,7 @@
+COPY . $HOME
+
+RUN chmod +x ./mvnw
+
 FROM ghcr.io/jqlang/jq:latest AS jq-stage
 
 FROM eclipse-temurin:21-jdk AS build
