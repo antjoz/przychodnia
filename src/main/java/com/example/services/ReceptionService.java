@@ -354,13 +354,12 @@ public class ReceptionService {
 
     // --- 9. Szczegóły wizyty (ZWRACA HarmonogramDTO) ---
     public HarmonogramDTO getAppointmentDetails(int terminId) throws SQLException {
-        // Dodano r.ID_Rezerwacji do listy pobieranych kolumn
         String query = "SELECT r.ID_Rezerwacji, u.Imie, u.Nazwisko, u.Numer_telefonu, u.Email, p.PESEL, r.Status_rezerwacji, w.Opis_Powodu " +
                 "FROM Rezerwacja r " +
                 "JOIN Pacjent p ON r.ID_Pacjenta = p.ID_uzytkownika " +
                 "JOIN Uzytkownik u ON p.ID_Uzytkownika = u.Id_uzytkownika " +
-                "LEFT JOIN Wizyta w ON r.ID_Rezerwacji = w.ID_Rezerwacji " + // Zmieniono na LEFT JOIN dla bezpieczeństwa
-                "WHERE r.ID_Terminu = ?";
+                "LEFT JOIN Wizyta w ON r.ID_Rezerwacji = w.ID_Rezerwacji " +
+                "WHERE r.ID_Terminu = ? AND r.Status_rezerwacji != 'Anulowana'";
 
         try (Connection conn = DatabaseConnectionService.getConnection();
              PreparedStatement stmt = conn.prepareStatement(query)) {
