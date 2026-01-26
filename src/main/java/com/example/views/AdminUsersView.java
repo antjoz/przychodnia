@@ -74,7 +74,7 @@ public class AdminUsersView extends VerticalLayout {
 
         roleFilter = new ComboBox<>();
         roleFilter.setPlaceholder("Filtruj wg roli");
-        roleFilter.setItems("Wszyscy", "Lekarz", "Rejestracja", "Admin");
+        roleFilter.setItems("Wszyscy", "Lekarz", "Rejestracja", "Admin", "Pacjent");
         roleFilter.setValue("Wszyscy");
         roleFilter.addValueChangeListener(e -> updateFilter());
 
