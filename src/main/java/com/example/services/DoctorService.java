@@ -22,7 +22,7 @@ public class DoctorService {
             LEFT JOIN Pacjent p ON r.ID_Pacjenta = p.ID_Uzytkownika
             LEFT JOIN Uzytkownik u ON p.ID_Uzytkownika = u.ID_Uzytkownika
             WHERE t.ID_Lekarza = ? AND t.Data = ?
-            ORDER BY t.Godzina
+            ORDER BY t.Godzina WHERE r.Status_rezerwacji NOT LIKE "Anulowana"
         """;
 
         try (Connection conn = DatabaseConnectionService.getConnection();

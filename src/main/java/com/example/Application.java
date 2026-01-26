@@ -11,7 +11,7 @@ import com.vaadin.flow.component.page.AppShellConfigurator;
 @StyleSheet(Lumo.STYLESHEET) // Use Aura.STYLESHEET to use Aura instead
 @StyleSheet(Lumo.UTILITY_STYLESHEET)
 @StyleSheet("styles.css") // Your custom styles
-@PWA(name = "Przychodnia", shortName = "App", offlinePath="offline.html") // <--- DODAJ TO
+@PWA(name = "Przychodnia", shortName = "App", offlinePath="offline.html")
 public class Application implements AppShellConfigurator {
     public static void main(String[] args) {
         SpringApplication.run(Application.class, args);

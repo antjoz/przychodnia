@@ -85,7 +85,6 @@ public class ReceptionScheduleView extends VerticalLayout implements HasUrlParam
         weekRangeLabel = new H3();
         weekRangeLabel.getStyle().set("margin", "0 15px");
 
-        // NOWOŚĆ: Wybór daty do szybkiego skoku
         com.vaadin.flow.component.datepicker.DatePicker jumpToDate = new com.vaadin.flow.component.datepicker.DatePicker();
         jumpToDate.setPlaceholder("Skocz do daty...");
         jumpToDate.setLocale(new Locale("pl", "PL"));
@@ -102,7 +101,6 @@ public class ReceptionScheduleView extends VerticalLayout implements HasUrlParam
         navigationBar.setJustifyContentMode(JustifyContentMode.CENTER);
         navigationBar.setWidthFull();
 
-        // --- KONTENER HARMONOGRAMU ---
         scheduleContainer = new HorizontalLayout();
         scheduleContainer.setSizeFull();
         scheduleContainer.setSpacing(true);
