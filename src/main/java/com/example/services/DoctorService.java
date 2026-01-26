@@ -21,7 +21,7 @@ public class DoctorService {
             LEFT JOIN Rezerwacja r ON t.ID_Terminu = r.ID_Terminu
             LEFT JOIN Pacjent p ON r.ID_Pacjenta = p.ID_Uzytkownika
             LEFT JOIN Uzytkownik u ON p.ID_Uzytkownika = u.ID_Uzytkownika
-            WHERE t.ID_Lekarza = ? AND t.Data = ? AND r.Status_rezerwacji NOT LIKE "Anulowana"
+            WHERE t.ID_Lekarza = ? AND t.Data = ?
             ORDER BY t.Godzina
         """;
 
