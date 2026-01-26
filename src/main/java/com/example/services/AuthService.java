@@ -6,9 +6,17 @@ import java.sql.*;
 
 public class AuthService {
 
-    private static final String URL = "jdbc:postgresql://localhost:5432/przychodnia_db";
-    private static final String USER = "postgres";
-    private static final String PASS = "1234";
+    private static final String URL = System.getenv("DB_URL") != null
+            ? System.getenv("DB_URL")
+            : "jdbc:postgresql://localhost:5432/przychodnia_db";
+
+    private static final String USER = System.getenv("DB_USERNAME") != null
+            ? System.getenv("DB_USERNAME")
+            : "postgres";
+
+    private static final String PASS = System.getenv("DB_PASSWORD") != null
+            ? System.getenv("DB_PASSWORD")
+            : "1234";
 
     // Wyjątek do przekazywania komunikatów błędów do widoku
     public static class ValidationException extends Exception {
