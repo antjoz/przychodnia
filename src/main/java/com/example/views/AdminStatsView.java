@@ -2,155 +2,235 @@ package com.example.views;
 
 import com.example.services.AdminStatsService;
 import com.example.security.UserSession;
+import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
-import com.vaadin.flow.component.html.H4;
+import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
+import com.vaadin.flow.component.orderedlayout.FlexLayout;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.Map;
 
 @Route(value = "admin-stats", layout = MainLayout.class)
-@PageTitle("Statystyki")
+@PageTitle("Statystyki - Dashboard")
 public class AdminStatsView extends VerticalLayout {
 
     private final AdminStatsService statsService = new AdminStatsService();
 
-    // Kontenery, do których wrzucimy wykresy
+    // Pola daty
+    private DatePicker startDate;
+    private DatePicker endDate;
+
+    // Kontenery na wykresy (Layouty wewnątrz kart)
     private HorizontalLayout reservationsChartLayout;
     private HorizontalLayout cancellationsChartLayout;
 
     public AdminStatsView() {
+        // 1. Zabezpieczenie dostępu
         UserSession currentUser = UserSession.getLoggedInUser();
         if (currentUser == null || !"Admin".equals(currentUser.getRola())) {
             add(new H2("Brak dostępu"));
             return;
         }
 
+        // 2. Ustawienia głównego widoku (tło dashboardu)
         setSizeFull();
         setPadding(true);
+        setSpacing(true);
+        // Lekko szare tło dla całego widoku, żeby białe karty się wyróżniały
+        getStyle().set("background-color", "#f4f6f8");
 
-        add(new H2("Statystyki Rezerwacji"));
+        // --- NAGŁÓWEK ---
+        H2 title = new H2("Statystyki Przychodni");
+        title.getStyle().set("margin-top", "0");
 
-        // --- FILTRY ---
-        DatePicker startDate = new DatePicker("Od");
-        startDate.setValue(LocalDate.now().minusDays(10)); // Domyślnie ostatnie 10 dni
+        // --- PASEK NARZĘDZI (Filtry) ---
+        HorizontalLayout toolbar = createToolbar();
 
-        DatePicker endDate = new DatePicker("Do");
-        endDate.setValue(LocalDate.now().plusDays(5));
+        // --- KARTY Z WYKRESAMI ---
+        // Używamy FlexLayout z wrapowaniem, żeby karty układały się ładnie
+        FlexLayout dashboardLayout = new FlexLayout();
+        dashboardLayout.setWidthFull();
+        dashboardLayout.setFlexWrap(FlexLayout.FlexWrap.WRAP);
+        dashboardLayout.setJustifyContentMode(JustifyContentMode.CENTER);
+        dashboardLayout.setAlignItems(Alignment.STRETCH);
+        dashboardLayout.getStyle().set("gap", "20px"); // Odstęp między kartami
 
-        HorizontalLayout filters = new HorizontalLayout(startDate, endDate);
-        filters.setAlignItems(Alignment.END);
+        // Inicjalizacja kontenerów na słupki
+        reservationsChartLayout = createChartContainer();
+        cancellationsChartLayout = createChartContainer();
 
-        // Przycisk odśwież
-        Div refreshBtn = new Div(); // placeholder, wystarczy event listener
+        // Tworzenie Kart (Card)
+        Div cardReservations = createCard("Zrealizowane Wizyty", reservationsChartLayout);
+        Div cardCancellations = createCard("Anulowane Wizyty", cancellationsChartLayout);
 
-        // --- WYKRES 1: REZERWACJE ---
-        add(new H4("Liczba udanych rezerwacji (dzień po dniu)"));
-        reservationsChartLayout = new HorizontalLayout();
-        reservationsChartLayout.setWidthFull();
-        reservationsChartLayout.setHeight("200px"); // Wysokość wykresu
-        reservationsChartLayout.setAlignItems(Alignment.END); // Słupki rosną od dołu
-        // Dodajemy pasek przewijania, jeśli dni jest dużo
-        reservationsChartLayout.getStyle().set("overflow-x", "auto");
+        dashboardLayout.add(cardReservations, cardCancellations);
 
-        add(reservationsChartLayout);
+        add(title, toolbar, dashboardLayout);
 
-        // --- WYKRES 2: ANULOWANE ---
-        add(new H4("Liczba anulowanych wizyt"));
-        cancellationsChartLayout = new HorizontalLayout();
-        cancellationsChartLayout.setWidthFull();
-        cancellationsChartLayout.setHeight("200px");
-        cancellationsChartLayout.setAlignItems(Alignment.END);
-        cancellationsChartLayout.getStyle().set("overflow-x", "auto");
-
-        add(cancellationsChartLayout);
-
-        // --- LOGIKA ---
-        startDate.addValueChangeListener(e -> refreshCharts(startDate.getValue(), endDate.getValue()));
-        endDate.addValueChangeListener(e -> refreshCharts(startDate.getValue(), endDate.getValue()));
-
-        // Pierwsze uruchomienie
-        refreshCharts(startDate.getValue(), endDate.getValue());
+        // --- START ---
+        // Domyślnie ostatnie 14 dni
+        setRange(LocalDate.now().minusDays(13), LocalDate.now());
     }
 
-    private void refreshCharts(LocalDate start, LocalDate end) {
+    private HorizontalLayout createToolbar() {
+        startDate = new DatePicker("Od");
+        endDate = new DatePicker("Do");
+
+        // Logika odświeżania po zmianie daty ręcznie
+        startDate.addValueChangeListener(e -> refreshCharts());
+        endDate.addValueChangeListener(e -> refreshCharts());
+
+        // Przyciski szybkich zakresów
+        Button btn7Days = new Button("7 Dni", e -> setRange(LocalDate.now().minusDays(6), LocalDate.now()));
+        Button btn30Days = new Button("30 Dni", e -> setRange(LocalDate.now().minusDays(29), LocalDate.now()));
+        Button btnThisMonth = new Button("Ten miesiąc", e -> {
+            LocalDate now = LocalDate.now();
+            LocalDate firstDay = YearMonth.now().atDay(1);
+            setRange(firstDay, now);
+        });
+
+        // Stylizacja przycisków (drobne, tertiary)
+        btn7Days.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        btn30Days.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        btnThisMonth.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+
+        HorizontalLayout toolbar = new HorizontalLayout(startDate, endDate, btn7Days, btn30Days, btnThisMonth);
+        toolbar.setAlignItems(Alignment.BASELINE);
+        toolbar.addClassName("toolbar");
+        toolbar.getStyle().set("background-color", "white");
+        toolbar.getStyle().set("padding", "15px");
+        toolbar.getStyle().set("border-radius", "10px");
+        toolbar.getStyle().set("box-shadow", "0 2px 5px rgba(0,0,0,0.05)");
+        toolbar.setWidthFull();
+
+        return toolbar;
+    }
+
+    // Pomocnicza metoda do tworzenia "Karty" (Biały prostokąt z cieniem)
+    private Div createCard(String titleText, HorizontalLayout content) {
+        Div card = new Div();
+        // Style karty
+        card.getStyle().set("background-color", "white");
+        card.getStyle().set("border-radius", "12px");
+        card.getStyle().set("box-shadow", "0 4px 12px rgba(0,0,0,0.08)");
+        card.getStyle().set("padding", "20px");
+        card.getStyle().set("min-width", "400px"); // Minimalna szerokość
+        card.getStyle().set("flex-grow", "1");      // Rozciąganie
+        card.getStyle().set("flex-basis", "45%");   // Domyślnie zajmuje ok połowy ekranu
+
+        H3 title = new H3(titleText);
+        title.getStyle().set("margin-top", "0");
+        title.getStyle().set("color", "#555");
+        title.getStyle().set("font-size", "1.1em");
+
+        card.add(title, content);
+        return card;
+    }
+
+    private HorizontalLayout createChartContainer() {
+        HorizontalLayout layout = new HorizontalLayout();
+        layout.setWidthFull();
+        layout.setHeight("250px"); // Trochę wyższy wykres
+        layout.setAlignItems(Alignment.END);
+        layout.getStyle().set("overflow-x", "auto"); // Przewijanie
+        layout.getStyle().set("padding-bottom", "10px");
+        // Scrollbar styling (opcjonalnie, dla webkit)
+        layout.getElement().executeJs("this.style.scrollbarWidth = 'thin';");
+        return layout;
+    }
+
+    private void setRange(LocalDate start, LocalDate end) {
+        // Ustawienie wartości wywoła listenery, które wywołają refreshCharts()
+        // Blokujemy listenery na chwilę, żeby nie odświeżać dwa razy
+        startDate.setValue(start);
+        endDate.setValue(end);
+    }
+
+    private void refreshCharts() {
+        LocalDate start = startDate.getValue();
+        LocalDate end = endDate.getValue();
+
         if (start == null || end == null || start.isAfter(end)) return;
 
         // 1. Pobierz dane
         Map<LocalDate, Integer> reservations = statsService.getDailyStats(start, end, false);
         Map<LocalDate, Integer> cancellations = statsService.getDailyStats(start, end, true);
 
-        // 2. Rysuj wykresy
-        // Kolor niebieski dla rezerwacji (#1676f3), Czerwony dla anulowanych (#e03030)
+        // 2. Rysuj wykresy (Rezerwacje - Niebieski, Anulowane - Czerwony/Pomarańczowy)
         drawChart(reservationsChartLayout, reservations, "#1676f3");
-        drawChart(cancellationsChartLayout, cancellations, "#e03030");
+        drawChart(cancellationsChartLayout, cancellations, "#e63946");
     }
 
     private void drawChart(HorizontalLayout container, Map<LocalDate, Integer> data, String color) {
         container.removeAll();
 
-        // Znajdź wartość maksymalną, żeby wyskalować słupki (żeby najwyższy miał 100% wysokości)
         int maxValue = data.values().stream().mapToInt(v -> v).max().orElse(1);
-        if (maxValue == 0) maxValue = 1; // Zabezpieczenie przed dzieleniem przez 0
+        if (maxValue == 0) maxValue = 1;
 
         for (Map.Entry<LocalDate, Integer> entry : data.entrySet()) {
             LocalDate date = entry.getKey();
             int value = entry.getValue();
 
-            // Słupek to VerticalLayout zawierający: liczbę, kolorowy prostokąt, datę
+            // WRAPPER SŁUPKA
             VerticalLayout barWrapper = new VerticalLayout();
             barWrapper.setSpacing(false);
             barWrapper.setPadding(false);
-            barWrapper.setAlignItems(Alignment.CENTER);
-            barWrapper.setWidth("50px"); // Stała szerokość słupka
-            barWrapper.getStyle().set("flex-shrink", "0"); // Nie ściskaj słupków
+            barWrapper.setJustifyContentMode(JustifyContentMode.END); // Dół
+            barWrapper.setAlignItems(Alignment.CENTER); // Środek w poziomie
+            barWrapper.setWidth("40px");
+            barWrapper.getStyle().set("flex-shrink", "0");
+            barWrapper.setHeight("100%");
 
-            // 1. Liczba nad słupkiem
+            // ETYKIETA WARTOŚCI (nad słupkiem)
             Span valueLabel = new Span(String.valueOf(value));
-            valueLabel.getStyle().set("font-size", "12px");
-            valueLabel.getStyle().set("margin-bottom", "5px");
+            valueLabel.getStyle().set("font-size", "11px");
+            valueLabel.getStyle().set("font-weight", "bold");
+            valueLabel.getStyle().set("color", "#666");
+            valueLabel.getStyle().set("margin-bottom", "4px");
+            // Ukrywamy zero, żeby wykres był czystszy (opcjonalnie)
+            if (value == 0) valueLabel.setVisible(false);
 
-            // 2. Kolorowy prostokąt (Bar)
+            // SŁUPEK (Bar)
             Div bar = new Div();
-            bar.setWidth("30px");
-            // Oblicz wysokość w procentach
+            bar.setWidth("20px"); // Węższe słupki wyglądają nowocześniej
+
             double heightPercent = ((double) value / maxValue) * 100;
-            // Minimalna wysokość 2px, żeby było widać, że to 0
-            if (heightPercent < 1 && value == 0) heightPercent = 2;
+            if (heightPercent < 2 && value == 0) heightPercent = 2; // min wysokość dla zera
 
             bar.setHeight(heightPercent + "%");
             bar.getStyle().set("background-color", color);
             bar.getStyle().set("border-radius", "4px 4px 0 0");
-            bar.getStyle().set("transition", "height 0.5s"); // Ładna animacja wzrostu
+            bar.getStyle().set("transition", "all 0.3s ease"); // Płynna animacja
 
-            // Jeśli słupek jest mały (0%), ustawiamy mu minimalną wysokość w pikselach dla estetyki
+            // Tooltip (dymek po najechaniu)
+            bar.setTitle(date.toString() + ": " + value);
+
+            // Efekt Hover (rozjaśnienie po najechaniu)
+            // W Javie Vaadin dodanie CSS :hover jest trudne bez pliku CSS,
+            // ale tooltip systemowy (setTitle) załatwia sprawę informacji.
+
             if (value == 0) {
-                bar.getStyle().set("height", "2px");
-                bar.getStyle().set("background-color", "#ccc"); // Szary dla zera
+                bar.getStyle().set("background-color", "#e0e0e0"); // Szary dla zera
             }
 
-            // 3. Data pod słupkiem
+            // ETYKIETA DATY (pod słupkiem)
             Span dateLabel = new Span(date.getDayOfMonth() + "." + date.getMonthValue());
-            dateLabel.getStyle().set("font-size", "10px");
-            dateLabel.getStyle().set("margin-top", "5px");
+            dateLabel.getStyle().set("font-size", "9px");
+            dateLabel.getStyle().set("color", "#888");
+            dateLabel.getStyle().set("margin-top", "6px");
 
             barWrapper.add(valueLabel, bar, dateLabel);
-
-            // Ważne: musimy ustawić flex-grow dla wrappera wewnątrz kontenera poziomego,
-            // ale tutaj chcemy, by wysokość słupka (Div bar) była relatywna do wysokości wrappera.
-            // Prostsza metoda: Ustawiamy wysokość wrappera na 100% kontenera.
-            barWrapper.setHeight("100%");
-            // Ale musimy wyrównać zawartość do dołu (Alignment.END dla wrappera nie zadziała idealnie na Div w środku bez flexa).
-            // Użyjmy justify-content w wrapperze:
-            barWrapper.setJustifyContentMode(JustifyContentMode.END);
-
             container.add(barWrapper);
         }
     }
