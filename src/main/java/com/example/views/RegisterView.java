@@ -48,6 +48,8 @@ public class RegisterView extends VerticalLayout {
 
         PasswordField passwordField = new PasswordField("Hasło");
         passwordField.setRequired(true);
+        // --- ZMIANA 1: Informacja dla użytkownika ---
+        passwordField.setHelperText("Min. 8 znaków, 1 litera, 1 cyfra");
 
         TextField telefonField = new TextField("Telefon");
         telefonField.setMaxLength(16);
@@ -74,21 +76,31 @@ public class RegisterView extends VerticalLayout {
                 return;
             }
 
-            // 2. Walidacja formatu
+            // --- ZMIANA 2: Walidacja hasła ---
+            String passwordVal = passwordField.getValue();
+            // Sprawdzenie długości (min 8), występowania litery i cyfry
+            if (passwordVal.length() < 8 || !passwordVal.matches(".*[a-zA-Z].*") || !passwordVal.matches(".*\\d.*")) {
+                Notification.show("Hasło musi mieć min. 8 znaków, literę i cyfrę!", 5000, Notification.Position.MIDDLE)
+                        .addThemeVariants(NotificationVariant.LUMO_ERROR);
+                return;
+            }
+            // ---------------------------------
+
+            // 3. Walidacja formatu (PESEL, Email)
             if (peselField.isInvalid() || emailField.isInvalid()) {
                 Notification.show("Popraw błędy w formularzu", 3000, Notification.Position.MIDDLE)
                         .addThemeVariants(NotificationVariant.LUMO_ERROR);
                 return;
             }
 
-            // 3. Walidacja telefonu
+            // 4. Walidacja telefonu
             if(telefonField.isEmpty() || !telefonField.getValue().matches("^[+]?[0-9]{9,15}$")) {
                 Notification.show("Podaj poprawny numer telefonu (9-15 cyfr)", 3000, Notification.Position.MIDDLE)
                         .addThemeVariants(NotificationVariant.LUMO_ERROR);
                 return;
             }
 
-            // 4. Próba zapisu do bazy
+            // 5. Próba zapisu do bazy
             try {
                 authService.registerUser(
                         imieField.getValue(),

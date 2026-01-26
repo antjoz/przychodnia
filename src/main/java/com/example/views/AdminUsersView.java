@@ -12,10 +12,12 @@ import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.grid.dataview.GridListDataView;
 import com.vaadin.flow.component.html.H2;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
+import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.EmailField;
@@ -38,15 +40,11 @@ public class AdminUsersView extends VerticalLayout {
     private final AdminService adminService = new AdminService();
     private final Grid<UserDTO> grid = new Grid<>(UserDTO.class);
 
-    // Pola filtrów - jako pola klasy, by mieć do nich dostęp w metodach
     private TextField searchField;
     private ComboBox<String> roleFilter;
-
-    // Widok danych grida, który pozwala na filtrowanie
     private GridListDataView<UserDTO> dataView;
 
     public AdminUsersView() {
-        // Zabezpieczenie: Tylko admin ma wstęp
         UserSession currentUser = UserSession.getLoggedInUser();
         if (currentUser == null || !"Admin".equals(currentUser.getRola())) {
             add(new H2("Brak dostępu"));
@@ -56,41 +54,34 @@ public class AdminUsersView extends VerticalLayout {
         setSizeFull();
         configureGrid();
 
-        // --- TWORZENIE PASKA NARZĘDZI (Filtry + Przycisk) ---
         HorizontalLayout toolbar = createToolbar();
-
         add(new H2("Lista Użytkowników"), toolbar, grid);
 
         try {
-            refreshGrid(); // Pobiera dane i ustawia filtry
+            refreshGrid();
         } catch (SQLException e) {
             Notification.show("Błąd pobierania danych: " + e.getMessage());
         }
     }
 
     private HorizontalLayout createToolbar() {
-        // 1. Wyszukiwarka tekstowa
         searchField = new TextField();
         searchField.setPlaceholder("Szukaj");
         searchField.setPrefixComponent(new Icon(VaadinIcon.SEARCH));
         searchField.setClearButtonVisible(true);
-        // LAZY oznacza, że filtr zadziała chwilę po przestaniu pisania (wydajność)
         searchField.setValueChangeMode(ValueChangeMode.LAZY);
         searchField.addValueChangeListener(e -> updateFilter());
 
-        // 2. Filtr Roli
         roleFilter = new ComboBox<>();
         roleFilter.setPlaceholder("Filtruj wg roli");
         roleFilter.setItems("Wszyscy", "Lekarz", "Rejestracja", "Admin");
         roleFilter.setValue("Wszyscy");
         roleFilter.addValueChangeListener(e -> updateFilter());
 
-        // 3. Przycisk Dodawania
         Button addBtn = new Button("Dodaj pracownika", VaadinIcon.PLUS.create());
         addBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         addBtn.addClickListener(e -> openAddUserDialog());
 
-        // Układ paska
         HorizontalLayout toolbar = new HorizontalLayout(searchField, roleFilter, addBtn);
         toolbar.addClassName("toolbar");
         return toolbar;
@@ -98,15 +89,48 @@ public class AdminUsersView extends VerticalLayout {
 
     private void configureGrid() {
         grid.setSizeFull();
-        grid.setColumns(); // Czyścimy domyślne kolumny
+        grid.setColumns();
 
-        grid.addColumn(UserDTO::getImie).setHeader("Imię").setSortable(true);
-        grid.addColumn(UserDTO::getNazwisko).setHeader("Nazwisko").setSortable(true);
-        grid.addColumn(UserDTO::getEmail).setHeader("Email");
-        grid.addColumn(UserDTO::getTelefon).setHeader("Telefon");
-        grid.addColumn(UserDTO::getRola).setHeader("Stanowisko").setSortable(true);
+        grid.addColumn(UserDTO::getImie).setHeader("Imię").setSortable(true).setAutoWidth(true);
+        grid.addColumn(UserDTO::getNazwisko).setHeader("Nazwisko").setSortable(true).setAutoWidth(true);
 
-        // --- KOLUMNA AKCJI ---
+        // --- ZMIANA 1: Specjalna kolumna dla Emaila ---
+        grid.addColumn(new ComponentRenderer<>(user -> {
+            HorizontalLayout layout = new HorizontalLayout();
+            layout.setAlignItems(FlexComponent.Alignment.CENTER);
+            layout.setSpacing(true);
+
+            // Tekst emaila
+            Span emailSpan = new Span(user.getEmail());
+            // Style CSS, żeby tekst się ucinał (...) zamiast zawijać
+            emailSpan.getStyle().set("text-overflow", "ellipsis");
+            emailSpan.getStyle().set("white-space", "nowrap");
+            emailSpan.getStyle().set("overflow", "hidden");
+            emailSpan.getStyle().set("max-width", "150px"); // Maksymalna szerokość tekstu
+            emailSpan.getStyle().set("display", "block");
+
+            layout.add(emailSpan);
+
+            // Przycisk "Pokaż więcej", jeśli email jest długi
+            if (user.getEmail() != null && user.getEmail().length() > 20) {
+                Button showFullBtn = new Button(VaadinIcon.EYE.create());
+                showFullBtn.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_TERTIARY);
+                showFullBtn.setTooltipText("Pokaż pełny email");
+
+                showFullBtn.addClickListener(e -> {
+                    // Wyświetl pełny email w dialogu lub notyfikacji
+                    Notification notification = Notification.show(user.getEmail(), 5000, Notification.Position.MIDDLE);
+                    notification.addThemeVariants(NotificationVariant.LUMO_CONTRAST);
+                });
+                layout.add(showFullBtn);
+            }
+
+            return layout;
+        })).setHeader("Email").setAutoWidth(true);
+
+        grid.addColumn(UserDTO::getTelefon).setHeader("Telefon").setAutoWidth(true);
+        grid.addColumn(UserDTO::getRola).setHeader("Stanowisko").setSortable(true).setAutoWidth(true);
+
         grid.addColumn(new ComponentRenderer<>(user -> {
             HorizontalLayout layout = new HorizontalLayout();
 
@@ -145,11 +169,8 @@ public class AdminUsersView extends VerticalLayout {
         })).setHeader("Zarządzanie").setAutoWidth(true);
     }
 
-    // --- LOGIKA FILTROWANIA ---
     private void refreshGrid() throws SQLException {
-        // Pobieramy listę z bazy i tworzymy DataView
         dataView = grid.setItems(adminService.getAllUsers());
-        // Od razu nakładamy filtry (w razie gdyby coś już było wpisane)
         updateFilter();
     }
 
@@ -157,7 +178,6 @@ public class AdminUsersView extends VerticalLayout {
         if (dataView == null) return;
 
         dataView.addFilter(user -> {
-            // 1. Logika dla pola tekstowego
             String searchTerm = searchField.getValue().trim();
             boolean matchesSearch = true;
 
@@ -171,19 +191,16 @@ public class AdminUsersView extends VerticalLayout {
                 matchesSearch = matchesName || matchesSurname || matchesEmail || matchesPhone;
             }
 
-            // 2. Logika dla roli
             String selectedRole = roleFilter.getValue();
             boolean matchesRole = true;
             if (selectedRole != null && !"Wszyscy".equals(selectedRole)) {
                 matchesRole = selectedRole.equals(user.getRola());
             }
 
-            // 3. Łączymy warunki (musi spełniać I szukanie I rolę)
             return matchesSearch && matchesRole;
         });
     }
 
-    // --- OKNO ZMIANY GODZIN PRACY ---
     private void openEditHoursDialog(UserDTO doctor) {
         Dialog dialog = new Dialog();
         dialog.setHeaderTitle("Grafik: " + doctor.getImie() + " " + doctor.getNazwisko());
@@ -230,11 +247,10 @@ public class AdminUsersView extends VerticalLayout {
         dialog.open();
     }
 
-    // --- OKNO DODAWANIA PRACOWNIKA ---
     private void openAddUserDialog() {
         Dialog dialog = new Dialog();
         dialog.setHeaderTitle("Nowy Użytkownik");
-        dialog.setWidth("600px"); // Sztywna szerokość zapobiega rozjeżdżaniu
+        dialog.setWidth("600px");
 
         FormLayout form = new FormLayout();
         form.setWidthFull();
@@ -242,7 +258,11 @@ public class AdminUsersView extends VerticalLayout {
         TextField imie = new TextField("Imię");
         TextField nazwisko = new TextField("Nazwisko");
         TextField login = new TextField("Login");
+
         PasswordField haslo = new PasswordField("Hasło");
+        // Ustawienie podpowiedzi dla użytkownika w polu
+        haslo.setHelperText("Min. 8 znaków, 1 litera, 1 cyfra");
+
         EmailField email = new EmailField("Email");
 
         TextField telefon = new TextField("Numer telefonu");
@@ -293,9 +313,24 @@ public class AdminUsersView extends VerticalLayout {
         Button saveButton = new Button("Utwórz konto", e -> {
             if (rola.isEmpty()) return;
 
+            // --- ZMIANA 2: Walidacja hasła ---
+            String passwordVal = haslo.getValue();
+            if (passwordVal == null || passwordVal.length() < 8) {
+                Notification.show("Hasło musi mieć co najmniej 8 znaków!")
+                        .addThemeVariants(NotificationVariant.LUMO_ERROR);
+                return;
+            }
+            // Sprawdzenie czy jest litera i cyfra
+            if (!passwordVal.matches(".*[a-zA-Z].*") || !passwordVal.matches(".*\\d.*")) {
+                Notification.show("Hasło musi zawierać co najmniej jedną literę i jedną cyfrę!")
+                        .addThemeVariants(NotificationVariant.LUMO_ERROR);
+                return;
+            }
+            // ---------------------------------
+
             String telVal = telefon.getValue();
             if (telVal == null || !telVal.matches("^[+]?[0-9]{9,15}$")) {
-                Notification.show("Numer telefonu musi mieć 9-15 cyfr (może zawierać '+')")
+                Notification.show("Numer telefonu musi mieć 9-15 cyfr")
                         .addThemeVariants(NotificationVariant.LUMO_ERROR);
                 return;
             }
