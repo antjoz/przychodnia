@@ -5,8 +5,9 @@ import com.example.security.UserSession;
 import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
-import com.vaadin.flow.component.html.H3;
+import com.vaadin.flow.component.html.H4;
 import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PageTitle;
@@ -14,17 +15,16 @@ import com.vaadin.flow.router.Route;
 
 import java.time.LocalDate;
 import java.util.Map;
-import java.util.LinkedHashMap;
 
 @Route(value = "admin-stats", layout = MainLayout.class)
-@PageTitle("Statystyki Przychodni")
+@PageTitle("Statystyki")
 public class AdminStatsView extends VerticalLayout {
 
     private final AdminStatsService statsService = new AdminStatsService();
 
-    private VerticalLayout activeSpecChart;
-    private VerticalLayout cancelledSpecChart;
-    private VerticalLayout timelineContainer;
+    // Kontenery, do których wrzucimy wykresy
+    private HorizontalLayout reservationsChartLayout;
+    private HorizontalLayout cancellationsChartLayout;
 
     public AdminStatsView() {
         UserSession currentUser = UserSession.getLoggedInUser();
@@ -35,183 +35,123 @@ public class AdminStatsView extends VerticalLayout {
 
         setSizeFull();
         setPadding(true);
-        setSpacing(true);
 
-        add(new H2("Dashboard Administratora"));
+        add(new H2("Statystyki Rezerwacji"));
 
-        // --- FILTRY DATY ---
-        HorizontalLayout filters = new HorizontalLayout();
-        filters.setDefaultVerticalComponentAlignment(Alignment.END);
+        // --- FILTRY ---
         DatePicker startDate = new DatePicker("Od");
-        startDate.setValue(LocalDate.now().minusDays(14));
+        startDate.setValue(LocalDate.now().minusDays(10)); // Domyślnie ostatnie 10 dni
+
         DatePicker endDate = new DatePicker("Do");
-        endDate.setValue(LocalDate.now().plusDays(14));
-        filters.add(startDate, endDate);
-        add(filters);
+        endDate.setValue(LocalDate.now().plusDays(5));
 
-        // --- SEKCJA 1: Wykres liniowy (Timeline) ---
-        add(new H3("Wizyty w czasie (Niebieskie: Aktywne, Czerwone: Anulowane)"));
-        timelineContainer = new VerticalLayout();
-        add(timelineContainer);
+        HorizontalLayout filters = new HorizontalLayout(startDate, endDate);
+        filters.setAlignItems(Alignment.END);
 
-        // --- SEKCJA 2: Specjalizacje (Obok siebie) ---
-        HorizontalLayout specsLayout = new HorizontalLayout();
-        specsLayout.setWidthFull();
+        // Przycisk odśwież
+        Div refreshBtn = new Div(); // placeholder, wystarczy event listener
 
-        VerticalLayout leftCol = new VerticalLayout();
-        leftCol.add(new H3("Najpopularniejsze (Zarezerwowane)"));
-        activeSpecChart = new VerticalLayout();
-        leftCol.add(activeSpecChart);
+        // --- WYKRES 1: REZERWACJE ---
+        add(new H4("Liczba udanych rezerwacji (dzień po dniu)"));
+        reservationsChartLayout = new HorizontalLayout();
+        reservationsChartLayout.setWidthFull();
+        reservationsChartLayout.setHeight("200px"); // Wysokość wykresu
+        reservationsChartLayout.setAlignItems(Alignment.END); // Słupki rosną od dołu
+        // Dodajemy pasek przewijania, jeśli dni jest dużo
+        reservationsChartLayout.getStyle().set("overflow-x", "auto");
 
-        VerticalLayout rightCol = new VerticalLayout();
-        rightCol.add(new H3("Najczęściej Anulowane"));
-        cancelledSpecChart = new VerticalLayout();
-        rightCol.add(cancelledSpecChart);
+        add(reservationsChartLayout);
 
-        specsLayout.add(leftCol, rightCol);
-        add(specsLayout);
+        // --- WYKRES 2: ANULOWANE ---
+        add(new H4("Liczba anulowanych wizyt"));
+        cancellationsChartLayout = new HorizontalLayout();
+        cancellationsChartLayout.setWidthFull();
+        cancellationsChartLayout.setHeight("200px");
+        cancellationsChartLayout.setAlignItems(Alignment.END);
+        cancellationsChartLayout.getStyle().set("overflow-x", "auto");
 
-        // Logika odświeżania
-        startDate.addValueChangeListener(e -> refreshAll(startDate.getValue(), endDate.getValue()));
-        endDate.addValueChangeListener(e -> refreshAll(startDate.getValue(), endDate.getValue()));
+        add(cancellationsChartLayout);
 
-        refreshAll(startDate.getValue(), endDate.getValue());
+        // --- LOGIKA ---
+        startDate.addValueChangeListener(e -> refreshCharts(startDate.getValue(), endDate.getValue()));
+        endDate.addValueChangeListener(e -> refreshCharts(startDate.getValue(), endDate.getValue()));
+
+        // Pierwsze uruchomienie
+        refreshCharts(startDate.getValue(), endDate.getValue());
     }
 
-    private void refreshAll(LocalDate start, LocalDate end) {
+    private void refreshCharts(LocalDate start, LocalDate end) {
         if (start == null || end == null || start.isAfter(end)) return;
 
-        // 1. Oś czasu (Timeline)
-        timelineContainer.removeAll();
-        Map<LocalDate, Map<String, Integer>> timelineData = statsService.getTimelineStats(start, end);
-        timelineContainer.add(new DoubleBarChart(timelineData));
+        // 1. Pobierz dane
+        Map<LocalDate, Integer> reservations = statsService.getDailyStats(start, end, false);
+        Map<LocalDate, Integer> cancellations = statsService.getDailyStats(start, end, true);
 
-        // 2. Specjalizacje - Aktywne
-        activeSpecChart.removeAll();
-        // Przekazujemy warunek SQL: != 'Anulowana'
-        // UWAGA: Musisz poprawić metodę w Service, by przyjmowała ten parametr, lub użyć gotowych metod
-        Map<String, Integer> activeData = statsService.getActiveVisitsBySpecialization();
-        activeSpecChart.add(new SimpleBarChart(activeData, true, "#1676f3")); // Niebieski
-
-        // 3. Specjalizacje - Anulowane
-        cancelledSpecChart.removeAll();
-        Map<String, Integer> cancelledData = statsService.getCancelledVisitsBySpecialization();
-        cancelledSpecChart.add(new SimpleBarChart(cancelledData, true, "#E03030")); // Czerwony
+        // 2. Rysuj wykresy
+        // Kolor niebieski dla rezerwacji (#1676f3), Czerwony dla anulowanych (#e03030)
+        drawChart(reservationsChartLayout, reservations, "#1676f3");
+        drawChart(cancellationsChartLayout, cancellations, "#e03030");
     }
 
-    // --- KOMPONENT 1: Prosty wykres (Poziomy) ---
-    public static class SimpleBarChart extends Div {
-        public SimpleBarChart(Map<String, Integer> data, boolean horizontal, String color) {
-            setWidthFull();
-            addClassName("chart-simple");
+    private void drawChart(HorizontalLayout container, Map<LocalDate, Integer> data, String color) {
+        container.removeAll();
 
-            int maxValue = data.values().stream().mapToInt(Integer::intValue).max().orElse(1);
+        // Znajdź wartość maksymalną, żeby wyskalować słupki (żeby najwyższy miał 100% wysokości)
+        int maxValue = data.values().stream().mapToInt(v -> v).max().orElse(1);
+        if (maxValue == 0) maxValue = 1; // Zabezpieczenie przed dzieleniem przez 0
 
-            if (horizontal) {
-                getStyle().set("display", "flex");
-                getStyle().set("flex-direction", "column");
-                getStyle().set("gap", "8px");
+        for (Map.Entry<LocalDate, Integer> entry : data.entrySet()) {
+            LocalDate date = entry.getKey();
+            int value = entry.getValue();
 
-                data.forEach((label, value) -> {
-                    if (value == 0) return; // Ukrywamy zera dla czystości
+            // Słupek to VerticalLayout zawierający: liczbę, kolorowy prostokąt, datę
+            VerticalLayout barWrapper = new VerticalLayout();
+            barWrapper.setSpacing(false);
+            barWrapper.setPadding(false);
+            barWrapper.setAlignItems(Alignment.CENTER);
+            barWrapper.setWidth("50px"); // Stała szerokość słupka
+            barWrapper.getStyle().set("flex-shrink", "0"); // Nie ściskaj słupków
 
-                    HorizontalLayout row = new HorizontalLayout();
-                    row.setWidthFull();
-                    row.setAlignItems(HorizontalLayout.Alignment.CENTER);
+            // 1. Liczba nad słupkiem
+            Span valueLabel = new Span(String.valueOf(value));
+            valueLabel.getStyle().set("font-size", "12px");
+            valueLabel.getStyle().set("margin-bottom", "5px");
 
-                    Span labelSpan = new Span(label);
-                    labelSpan.setWidth("120px");
-                    labelSpan.getStyle().set("font-size", "0.9em");
-
-                    Div barContainer = new Div();
-                    barContainer.setWidthFull();
-                    barContainer.getStyle().set("background-color", "#f5f5f5");
-                    barContainer.getStyle().set("height", "20px");
-                    barContainer.getStyle().set("border-radius", "4px");
-
-                    Div bar = new Div();
-                    double percent = ((double) value / maxValue) * 100;
-                    bar.setWidth(percent + "%");
-                    bar.setHeight("100%");
-                    bar.getStyle().set("background-color", color);
-                    bar.getStyle().set("border-radius", "4px");
-
-                    Span countSpan = new Span(String.valueOf(value));
-                    countSpan.getStyle().set("margin-left", "10px");
-                    countSpan.getStyle().set("font-weight", "bold");
-
-                    barContainer.add(bar);
-                    row.add(labelSpan, barContainer, countSpan);
-                    add(row);
-                });
-            }
-        }
-    }
-
-    // --- KOMPONENT 2: Wykres podwójny (Pionowy - Timeline) ---
-    public static class DoubleBarChart extends Div {
-        public DoubleBarChart(Map<LocalDate, Map<String, Integer>> data) {
-            setWidthFull();
-            getStyle().set("display", "flex");
-            getStyle().set("flex-direction", "row");
-            getStyle().set("align-items", "flex-end");
-            getStyle().set("height", "250px");
-            getStyle().set("gap", "4px");
-            getStyle().set("overflow-x", "auto");
-            getStyle().set("padding-bottom", "40px");
-
-            // Znajdź max wartość w obu kategoriach, żeby wyskalować
-            int globalMax = 1;
-            for (Map<String, Integer> day : data.values()) {
-                globalMax = Math.max(globalMax, day.get("Active"));
-                globalMax = Math.max(globalMax, day.get("Cancelled"));
-            }
-
-            for (Map.Entry<LocalDate, Map<String, Integer>> entry : data.entrySet()) {
-                LocalDate date = entry.getKey();
-                int active = entry.getValue().get("Active");
-                int cancelled = entry.getValue().get("Cancelled");
-
-                VerticalLayout col = new VerticalLayout();
-                col.setPadding(false);
-                col.setSpacing(false);
-                col.setAlignItems(VerticalLayout.Alignment.CENTER);
-                col.setWidth("35px");
-                col.getStyle().set("flex-shrink", "0"); // Nie zgniataj słupków
-
-                // Słupek Aktywny (Niebieski)
-                Div barActive = createBar(active, globalMax, "#1676f3");
-                // Słupek Anulowany (Czerwony)
-                Div barCancelled = createBar(cancelled, globalMax, "#E03030");
-
-                Span dateLabel = new Span(date.getMonthValue() + "-" + date.getDayOfMonth());
-                dateLabel.getStyle().set("font-size", "0.65em");
-                dateLabel.getStyle().set("transform", "rotate(-90deg)");
-                dateLabel.getStyle().set("margin-top", "15px");
-                dateLabel.getStyle().set("white-space", "nowrap");
-
-                HorizontalLayout barsRow = new HorizontalLayout(barActive, barCancelled);
-                barsRow.setSpacing(false);
-                barsRow.setAlignItems(Alignment.END);
-                barsRow.setHeight("100%"); // Wypełnij wysokość kontenera
-
-                col.add(barsRow, dateLabel);
-                add(col);
-            }
-        }
-
-        private Div createBar(int value, int max, String color) {
+            // 2. Kolorowy prostokąt (Bar)
             Div bar = new Div();
-            double percent = ((double) value / max) * 100;
-            // Minimalna wysokość 2px żeby było widać, że jest 0
-            if (value == 0) percent = 1;
+            bar.setWidth("30px");
+            // Oblicz wysokość w procentach
+            double heightPercent = ((double) value / maxValue) * 100;
+            // Minimalna wysokość 2px, żeby było widać, że to 0
+            if (heightPercent < 1 && value == 0) heightPercent = 2;
 
-            bar.setWidth("8px");
-            bar.setHeight(percent + "%");
+            bar.setHeight(heightPercent + "%");
             bar.getStyle().set("background-color", color);
-            bar.getStyle().set("margin-right", "2px");
-            bar.setTitle("Liczba: " + value); // Tooltip
-            return bar;
+            bar.getStyle().set("border-radius", "4px 4px 0 0");
+            bar.getStyle().set("transition", "height 0.5s"); // Ładna animacja wzrostu
+
+            // Jeśli słupek jest mały (0%), ustawiamy mu minimalną wysokość w pikselach dla estetyki
+            if (value == 0) {
+                bar.getStyle().set("height", "2px");
+                bar.getStyle().set("background-color", "#ccc"); // Szary dla zera
+            }
+
+            // 3. Data pod słupkiem
+            Span dateLabel = new Span(date.getDayOfMonth() + "." + date.getMonthValue());
+            dateLabel.getStyle().set("font-size", "10px");
+            dateLabel.getStyle().set("margin-top", "5px");
+
+            barWrapper.add(valueLabel, bar, dateLabel);
+
+            // Ważne: musimy ustawić flex-grow dla wrappera wewnątrz kontenera poziomego,
+            // ale tutaj chcemy, by wysokość słupka (Div bar) była relatywna do wysokości wrappera.
+            // Prostsza metoda: Ustawiamy wysokość wrappera na 100% kontenera.
+            barWrapper.setHeight("100%");
+            // Ale musimy wyrównać zawartość do dołu (Alignment.END dla wrappera nie zadziała idealnie na Div w środku bez flexa).
+            // Użyjmy justify-content w wrapperze:
+            barWrapper.setJustifyContentMode(JustifyContentMode.END);
+
+            container.add(barWrapper);
         }
     }
 }
