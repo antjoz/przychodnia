@@ -3,7 +3,7 @@ package com.example.data;
 public class BookingResult {
     private boolean success;
     private String generatedLogin;
-    private String generatedPassword; // Hasło jawne (do jednorazowego wyświetlenia)
+    private String generatedPassword;
 
     public BookingResult(boolean success, String generatedLogin, String generatedPassword) {
         this.success = success;

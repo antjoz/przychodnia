@@ -9,9 +9,9 @@ public class UserDTO {
     private String email;
     private String telefon;
     private boolean czyAktywny;
-    private Integer idLekarza;     // Opcjonalne (tylko dla lekarzy)
-    private String specjalizacja;  // Opcjonalne (tylko dla lekarzy)
-    private String pesel;          // Opcjonalne (tylko dla pacjentów)
+    private Integer idLekarza;
+    private String specjalizacja;
+    private String pesel;
 
     // Główny konstruktor ze wszystkimi polami
     public UserDTO(int id, String imie, String nazwisko, String login, String rola,
@@ -47,7 +47,7 @@ public class UserDTO {
     public boolean isCzyAktywny() { return czyAktywny; }
     public Integer getIdLekarza() { return idLekarza; }
     public String getSpecjalizacja() { return specjalizacja; }
-    public String getPesel() { return pesel; } // <-- Tego brakowało
+    public String getPesel() { return pesel; }
 
     // Settery (opcjonalne, zależnie od potrzeb)
     public void setCzyAktywny(boolean czyAktywny) { this.czyAktywny = czyAktywny; }

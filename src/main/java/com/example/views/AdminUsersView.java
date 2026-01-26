@@ -94,31 +94,27 @@ public class AdminUsersView extends VerticalLayout {
         grid.addColumn(UserDTO::getImie).setHeader("Imię").setSortable(true).setAutoWidth(true);
         grid.addColumn(UserDTO::getNazwisko).setHeader("Nazwisko").setSortable(true).setAutoWidth(true);
 
-        // --- ZMIANA 1: Specjalna kolumna dla Emaila ---
         grid.addColumn(new ComponentRenderer<>(user -> {
             HorizontalLayout layout = new HorizontalLayout();
             layout.setAlignItems(FlexComponent.Alignment.CENTER);
             layout.setSpacing(true);
 
-            // Tekst emaila
+
             Span emailSpan = new Span(user.getEmail());
-            // Style CSS, żeby tekst się ucinał (...) zamiast zawijać
             emailSpan.getStyle().set("text-overflow", "ellipsis");
             emailSpan.getStyle().set("white-space", "nowrap");
             emailSpan.getStyle().set("overflow", "hidden");
-            emailSpan.getStyle().set("max-width", "150px"); // Maksymalna szerokość tekstu
+            emailSpan.getStyle().set("max-width", "150px");
             emailSpan.getStyle().set("display", "block");
 
             layout.add(emailSpan);
 
-            // Przycisk "Pokaż więcej", jeśli email jest długi
             if (user.getEmail() != null && user.getEmail().length() > 20) {
                 Button showFullBtn = new Button(VaadinIcon.EYE.create());
                 showFullBtn.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_TERTIARY);
                 showFullBtn.setTooltipText("Pokaż pełny email");
 
                 showFullBtn.addClickListener(e -> {
-                    // Wyświetl pełny email w dialogu lub notyfikacji
                     Notification notification = Notification.show(user.getEmail(), 5000, Notification.Position.MIDDLE);
                     notification.addThemeVariants(NotificationVariant.LUMO_CONTRAST);
                 });
@@ -326,7 +322,6 @@ public class AdminUsersView extends VerticalLayout {
                         .addThemeVariants(NotificationVariant.LUMO_ERROR);
                 return;
             }
-            // ---------------------------------
 
             String telVal = telefon.getValue();
             if (telVal == null || !telVal.matches("^[+]?[0-9]{9,15}$")) {

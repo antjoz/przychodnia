@@ -30,7 +30,6 @@ public class MainLayout extends AppLayout {
     }
 
     private void createHeader() {
-        // ... (Tutaj bez zmian, zostaw tak jak miałeś) ...
         H1 logo = new H1("Przychodnia");
         logo.addClassNames("text-l", "m-m");
 
@@ -52,64 +51,42 @@ public class MainLayout extends AppLayout {
         addToNavbar(header);
     }
 
-    // --- TO JEST CZĘŚĆ, KTÓRĄ ZMIENIAMY ---
 
     private void createDrawer() {
         VerticalLayout menuLayout = new VerticalLayout();
 
-        // Ważne: Padding sprawia, że przyciski nie dotykają krawędzi ekranu
         menuLayout.setPadding(true);
-        menuLayout.setSpacing(true); // Odstępy między przyciskami
+        menuLayout.setSpacing(true);
 
-        // 1. OPCJE WSPÓLNE
         menuLayout.add(createMenuButton("Pulpit", VaadinIcon.DASHBOARD.create(), DashboardView.class));
 
-        // 2. OPCJE PACJENTA
         if ("Pacjent".equals(user.getRola())) {
             menuLayout.add(createMenuButton("Umów wizytę", VaadinIcon.CALENDAR_CLOCK.create(), PatientBookingView.class));
             menuLayout.add(createMenuButton("Historia wizyt", VaadinIcon.FILE_TEXT.create(), PatientHistoryView.class));
         }
 
-        // 3. OPCJE LEKARZA
         else if ("Lekarz".equals(user.getRola())) {
             menuLayout.add(createMenuButton("Harmonogram", VaadinIcon.CALENDAR_USER.create(), DoctorScheduleView.class));
         }
 
-        // 4. OPCJE ADMINA
         else if ("Admin".equals(user.getRola())) {
             menuLayout.add(createMenuButton("Użytkownicy", VaadinIcon.USERS.create(), AdminUsersView.class));
             menuLayout.add(createMenuButton("Statystyki", VaadinIcon.CHART.create(), AdminStatsView.class));
         }
 
         else if ("Rejestracja".equals(user.getRola())) {
-            // Dodajemy przycisk kierujący do naszego nowego widoku z kafelkami
             menuLayout.add(createMenuButton("Lekarze i Grafiki", VaadinIcon.DOCTOR.create(), DoctorsListView.class));
         }
 
         addToDrawer(menuLayout);
     }
 
-    // --- METODA TWORZĄCA WYGLĄD PRZYCISKU ---
     private Button createMenuButton(String caption, Icon icon, Class<? extends Component> navigationTarget) {
         Button button = new Button(caption, icon);
-
-        // 1. LUMO_PRIMARY = Kolorowe tło (niebieskie) + Biały tekst + Biała ikona
-        //    LUMO_LARGE = Większy, wygodniejszy przycisk
         button.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_LARGE);
-
-        // 2. Rozciągnij przycisk na całą szerokość paska
         button.setWidthFull();
-
-        // 3. Wyrównaj tekst i ikonę do lewej strony (zamiast do środka)
         button.getStyle().set("justify-content", "flex-start");
-
-        // 4. Dodatkowy odstęp ikony od tekstu
         icon.getElement().getStyle().set("margin-right", "15px");
-
-        // Opcjonalnie: Jeśli chcesz ciemne przyciski (czarne/szare) zamiast niebieskich,
-        // odkomentuj poniższą linię:
-        // button.addThemeVariants(ButtonVariant.LUMO_CONTRAST);
-
         button.addClickListener(e -> UI.getCurrent().navigate(navigationTarget));
 
         return button;

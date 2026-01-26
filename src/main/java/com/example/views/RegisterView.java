@@ -48,7 +48,6 @@ public class RegisterView extends VerticalLayout {
 
         PasswordField passwordField = new PasswordField("Hasło");
         passwordField.setRequired(true);
-        // --- ZMIANA 1: Informacja dla użytkownika ---
         passwordField.setHelperText("Min. 8 znaków, 1 litera, 1 cyfra");
 
         TextField telefonField = new TextField("Telefon");
@@ -64,9 +63,7 @@ public class RegisterView extends VerticalLayout {
         registerButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         registerButton.setWidthFull();
 
-        // --- OBSŁUGA REJESTRACJI ---
         registerButton.addClickListener(e -> {
-            // 1. Walidacja pustości
             if (imieField.isEmpty() || nazwiskoField.isEmpty() ||
                     peselField.isEmpty() || adresField.isEmpty() ||
                     loginField.isEmpty() || passwordField.isEmpty() || emailField.isEmpty()) {
@@ -76,7 +73,6 @@ public class RegisterView extends VerticalLayout {
                 return;
             }
 
-            // --- ZMIANA 2: Walidacja hasła ---
             String passwordVal = passwordField.getValue();
             // Sprawdzenie długości (min 8), występowania litery i cyfry
             if (passwordVal.length() < 8 || !passwordVal.matches(".*[a-zA-Z].*") || !passwordVal.matches(".*\\d.*")) {
@@ -84,23 +80,19 @@ public class RegisterView extends VerticalLayout {
                         .addThemeVariants(NotificationVariant.LUMO_ERROR);
                 return;
             }
-            // ---------------------------------
 
-            // 3. Walidacja formatu (PESEL, Email)
             if (peselField.isInvalid() || emailField.isInvalid()) {
                 Notification.show("Popraw błędy w formularzu", 3000, Notification.Position.MIDDLE)
                         .addThemeVariants(NotificationVariant.LUMO_ERROR);
                 return;
             }
 
-            // 4. Walidacja telefonu
             if(telefonField.isEmpty() || !telefonField.getValue().matches("^[+]?[0-9]{9,15}$")) {
                 Notification.show("Podaj poprawny numer telefonu (9-15 cyfr)", 3000, Notification.Position.MIDDLE)
                         .addThemeVariants(NotificationVariant.LUMO_ERROR);
                 return;
             }
 
-            // 5. Próba zapisu do bazy
             try {
                 authService.registerUser(
                         imieField.getValue(),
@@ -113,18 +105,15 @@ public class RegisterView extends VerticalLayout {
                         emailField.getValue()
                 );
 
-                // Jeśli nie rzucono wyjątku = SUKCES
                 Notification.show("Rejestracja udana! Możesz się zalogować.", 3000, Notification.Position.TOP_CENTER)
                         .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
                 UI.getCurrent().navigate("login");
 
             } catch (AuthService.ValidationException ex) {
-                // Wyświetlamy konkretny błąd (np. "Email zajęty")
                 Notification.show(ex.getMessage(), 5000, Notification.Position.MIDDLE)
                         .addThemeVariants(NotificationVariant.LUMO_ERROR);
 
             } catch (Exception ex) {
-                // Błąd ogólny
                 ex.printStackTrace();
                 Notification.show("Wystąpił błąd podczas rejestracji.", 5000, Notification.Position.MIDDLE)
                         .addThemeVariants(NotificationVariant.LUMO_ERROR);

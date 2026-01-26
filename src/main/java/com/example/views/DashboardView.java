@@ -27,34 +27,27 @@ import java.util.stream.Collectors;
 @PageTitle("Pulpit")
 public class DashboardView extends VerticalLayout {
 
-    // Serwis do obsługi logiki biznesowej
     private final ReceptionService receptionService = new ReceptionService();
     private final DoctorService doctorService = new DoctorService();
 
-    // Pola na gridy, aby mieć do nich dostęp przy odświeżaniu
     private Grid<HarmonogramDTO> receptionGrid;
     private Grid<HarmonogramDTO> patientActionGrid;
 
     public DashboardView() {
         UserSession user = UserSession.getLoggedInUser();
 
-        // Jeśli user nie jest zalogowany, metoda getLoggedInUser przekieruje go do logowania
         if (user == null) return;
 
         setAlignItems(Alignment.START);
         setPadding(true);
         setSpacing(true);
 
-        // --- SEKCJA WSPÓLNA (dla wszystkich) ---
         add(new H2("Witaj w systemie, " + user.getImie() + "!"));
 
-        // --- SEKCJA ZALEŻNA OD ROLI ---
         if ("Rejestracja".equals(user.getRola()) || "Admin".equals(user.getRola())) {
-            // Widok dla Rejestracji (i Admina) - KROK 1 Akceptacji
             createReceptionDashboard();
         }
         else if ("Pacjent".equals(user.getRola())) {
-            // Widok dla Pacjenta - KROK 2 Akceptacji
             createPatientDashboard(user.getId());
         }
         else if ("Lekarz".equals(user.getRola())) {
@@ -96,12 +89,10 @@ public class DashboardView extends VerticalLayout {
     private void handleReceptionDecision(int terminId, boolean accepted) {
         try {
             if (accepted) {
-                // Zmiana statusu na oczekiwanie na pacjenta
                 receptionService.updateAppointmentStatus(terminId, "Wymaga potwierdzenia przez pacjenta");
                 Notification.show("Zaakceptowano wstępnie. Oczekuje na potwierdzenie pacjenta.")
                         .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
             } else {
-                // Całkowite anulowanie
                 receptionService.updateAppointmentStatus(terminId, "Anulowana");
                 Notification.show("Rezerwacja została odrzucona.").addThemeVariants(NotificationVariant.LUMO_CONTRAST);
             }
@@ -113,7 +104,6 @@ public class DashboardView extends VerticalLayout {
 
     private void refreshReceptionGrid() {
         try {
-            // Zakładamy, że ReceptionService.getPendingReservations() zwraca teraz status 'Wymaga_Rejestracja'
             receptionGrid.setItems(receptionService.getPendingReservations());
         } catch (SQLException e) {
             Notification.show("Błąd pobierania danych: " + e.getMessage());
@@ -133,12 +123,10 @@ public class DashboardView extends VerticalLayout {
         patientActionGrid.addColumn(HarmonogramDTO::getLekarz).setHeader("Lekarz").setAutoWidth(true);
 
         patientActionGrid.addComponentColumn(dto -> {
-            // Przycisk Potwierdź -> status 'Potwierdzona' (KONIEC PROCESU)
             Button confirmBtn = new Button("Potwierdź", VaadinIcon.CHECK_CIRCLE.create());
             confirmBtn.addThemeVariants(ButtonVariant.LUMO_SUCCESS, ButtonVariant.LUMO_PRIMARY);
             confirmBtn.addClickListener(e -> handlePatientDecision(dto.getIdTerminu(), true, patientId));
 
-            // Przycisk Anuluj -> status 'Anulowana'
             Button cancelBtn = new Button("Rezygnuję", VaadinIcon.CLOSE_CIRCLE.create());
             cancelBtn.addThemeVariants(ButtonVariant.LUMO_ERROR);
             cancelBtn.addClickListener(e -> handlePatientDecision(dto.getIdTerminu(), false, patientId));
@@ -153,12 +141,10 @@ public class DashboardView extends VerticalLayout {
     private void handlePatientDecision(int terminId, boolean confirmed, int patientId) {
         try {
             if (confirmed) {
-                // Finalne potwierdzenie wizyty
                 receptionService.updateAppointmentStatus(terminId, "Potwierdzona");
                 Notification.show("Wizyta potwierdzona! Do zobaczenia.")
                         .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
             } else {
-                // Rezygnacja pacjenta
                 receptionService.updateAppointmentStatus(terminId, "Anulowana");
                 Notification.show("Zrezygnowano z wizyty.").addThemeVariants(NotificationVariant.LUMO_CONTRAST);
             }
@@ -172,14 +158,12 @@ public class DashboardView extends VerticalLayout {
         try {
             List<HarmonogramDTO> all = receptionService.getPatientReservations(patientId);
 
-            // Filtrujemy listę - pacjent ma tu widzieć TYLKO te, które wymagają jego akcji
             List<HarmonogramDTO> actionRequired = all.stream()
                     .filter(dto -> "Wymaga potwierdzenia przez pacjenta".equals(dto.getStatus()))
                     .collect(Collectors.toList());
 
             patientActionGrid.setItems(actionRequired);
 
-            // Ukrywamy tabelę, jeśli jest pusta, żeby nie zajmowała miejsca
             patientActionGrid.setVisible(!actionRequired.isEmpty());
 
             if (actionRequired.isEmpty()) {
@@ -200,7 +184,6 @@ public class DashboardView extends VerticalLayout {
                 .setHeader("Pacjent").setAutoWidth(true);
 
         todayGrid.addComponentColumn(dto -> {
-            // Kolorowanie statusu
             com.vaadin.flow.component.html.Span badge = new com.vaadin.flow.component.html.Span(dto.getStatus());
             badge.getElement().getThemeList().add("badge");
             if("Potwierdzona".equals(dto.getStatus())) badge.getElement().getThemeList().add("success");
@@ -211,12 +194,10 @@ public class DashboardView extends VerticalLayout {
         todayGrid.addComponentColumn(dto -> {
             Button btn = new Button("Realizuj", VaadinIcon.DOCTOR.create());
             btn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-            // Aktywne tylko jeśli potwierdzona lub odbyta (do edycji)
             boolean active = "Potwierdzona".equals(dto.getStatus()) || "Odbyta".equals(dto.getStatus());
             btn.setEnabled(active);
 
             btn.addClickListener(e -> {
-                // Przechodzimy do widoku realizacji z ID TERMINU
                 getUI().ifPresent(ui -> ui.navigate(VisitExecutionView.class, dto.getIdTerminu()));
             });
             return btn;
@@ -225,7 +206,6 @@ public class DashboardView extends VerticalLayout {
         add(todayGrid);
 
         try {
-            // Pobieramy TYLKO pacjentów (bez wolnych terminów)
             List<HarmonogramDTO> all = doctorService.getSchedule(doctorId, java.time.LocalDate.now());
             List<HarmonogramDTO> patients = all.stream()
                     .filter(d -> !"Wolny".equals(d.getStatus()))

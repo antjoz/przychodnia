@@ -33,13 +33,11 @@ public class VisitExecutionView extends VerticalLayout implements HasUrlParamete
     private int terminId;
     private int currentPatientId;
 
-    // Pola Pacjenta
     private TextField nameField = new TextField("Imię i Nazwisko");
     private TextField peselField = new TextField("PESEL");
     private TextField phoneField = new TextField("Telefon");
     private TextField emailField = new TextField("E-mail");
 
-    // Pola Wizyty
     private TextField reasonField = new TextField("Powód wizyty (zgłoszenie pacjenta)"); // NOWE POLE
     private TextArea notesField = new TextArea("Notatka Lekarska / Zalecenia"); // TO JEST NOTATKA
 
@@ -49,7 +47,6 @@ public class VisitExecutionView extends VerticalLayout implements HasUrlParamete
         setPadding(true);
         setMaxWidth("900px");
 
-        // 1. Nagłówek
         HorizontalLayout header = new HorizontalLayout();
         header.setWidthFull();
         header.setAlignItems(Alignment.CENTER);
@@ -58,7 +55,6 @@ public class VisitExecutionView extends VerticalLayout implements HasUrlParamete
         header.add(historyBtn);
         add(header);
 
-        // 2. Dane pacjenta
         FormLayout patientForm = new FormLayout();
         nameField.setReadOnly(true);
         peselField.setReadOnly(true);
@@ -69,21 +65,17 @@ public class VisitExecutionView extends VerticalLayout implements HasUrlParamete
         patientForm.setColspan(nameField, 2);
         add(patientForm);
 
-        // 3. Sekcja medyczna
         add(new H4("Realizacja wizyty"));
 
-        // Wyświetlenie powodu wizyty (tylko do odczytu dla lekarza)
         reasonField.setReadOnly(true);
         reasonField.setWidthFull();
         add(reasonField);
 
-        // Pole na notatki lekarza (do edycji)
         notesField.setWidthFull();
         notesField.setMinHeight("250px");
         notesField.setPlaceholder("Tu wpisz wywiad lekarski, wyniki badania przedmiotowego i zalecenia...");
         add(notesField);
 
-        // 4. Przyciski
         Button btnOdbyta = new Button("Zakończ (Odbyta)", e -> save("Odbyta"));
         btnOdbyta.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SUCCESS);
 
@@ -96,7 +88,6 @@ public class VisitExecutionView extends VerticalLayout implements HasUrlParamete
         HorizontalLayout actions = new HorizontalLayout(btnOdbyta, btnNieodbyta, btnWroc);
         add(actions);
 
-        // Akcja historii
         historyBtn.addClickListener(e -> showHistory());
     }
 
@@ -111,20 +102,17 @@ public class VisitExecutionView extends VerticalLayout implements HasUrlParamete
             HarmonogramDTO dto = doctorService.getVisitDetails(terminId);
 
             if (dto != null) {
-                // Dane osobowe
                 nameField.setValue(dto.getImiePacjenta() + " " + dto.getNazwiskoPacjenta());
                 peselField.setValue(dto.getPesel() != null ? dto.getPesel() : "Brak");
                 phoneField.setValue(dto.getTelefon() != null ? dto.getTelefon() : "-");
                 emailField.setValue(dto.getEmail() != null ? dto.getEmail() : "-");
 
-                // --- POWÓD WIZYTY (Dlaczego przyszedł) ---
                 if (dto.getPowodWizyty() != null) {
                     reasonField.setValue(dto.getPowodWizyty());
                 } else {
                     reasonField.setValue("Brak danych o powodzie");
                 }
 
-                // --- NOTATKA (Co lekarz już wpisał, np. przy edycji) ---
                 if (dto.getNotatkaLekarza() != null) {
                     notesField.setValue(dto.getNotatkaLekarza());
                 }
@@ -140,7 +128,6 @@ public class VisitExecutionView extends VerticalLayout implements HasUrlParamete
 
     private void save(String status) {
         try {
-            // Zapisujemy to, co jest w notesField jako notatkę lekarską
             doctorService.completeVisit(terminId, notesField.getValue(), status);
             Notification.show("Zapisano wizytę!").addThemeVariants(NotificationVariant.LUMO_SUCCESS);
             UI.getCurrent().navigate(DashboardView.class);
@@ -153,29 +140,25 @@ public class VisitExecutionView extends VerticalLayout implements HasUrlParamete
         if (currentPatientId == 0) return;
 
         Dialog dialog = new Dialog();
-        dialog.setWidth("1100px"); // Szerokie okno, żeby pomieścić kolumny
+        dialog.setWidth("1100px");
         dialog.setHeaderTitle("Historia leczenia: " + nameField.getValue());
 
         Grid<HarmonogramDTO> hGrid = new Grid<>();
 
-        // 1. Data
         hGrid.addColumn(HarmonogramDTO::getData)
                 .setHeader("Data")
                 .setAutoWidth(true)
                 .setSortable(true);
 
-        // 2. Lekarz
         hGrid.addColumn(HarmonogramDTO::getLekarz)
                 .setHeader("Lekarz")
                 .setAutoWidth(true);
 
-        // 3. Powód wizyty (Tylko powód, skracany jeśli bardzo długi)
         hGrid.addColumn(dto -> {
             String text = dto.getPowodWizyty();
             return (text != null && text.length() > 40) ? text.substring(0, 40) + "..." : text;
         }).setHeader("Powód wizyty").setFlexGrow(1);
 
-        // 4. Przycisk Szczegóły (otwiera notatkę i pełny powód)
         hGrid.addComponentColumn(dto -> {
             Button btnDetails = new Button("Notatka / Szczegóły", VaadinIcon.FILE_TEXT_O.create());
             btnDetails.addThemeVariants(ButtonVariant.LUMO_SMALL);
@@ -195,7 +178,6 @@ public class VisitExecutionView extends VerticalLayout implements HasUrlParamete
         dialog.open();
     }
 
-    // Nowe okno szczegółów z dwoma polami
     private void showHistoryDetails(HarmonogramDTO dto) {
         Dialog detailsDialog = new Dialog();
         detailsDialog.setHeaderTitle("Szczegóły wizyty: " + dto.getData());
@@ -205,25 +187,22 @@ public class VisitExecutionView extends VerticalLayout implements HasUrlParamete
         layout.setPadding(false);
         layout.setSpacing(true);
 
-        // Pole 1: Lekarz
         TextField doctorField = new TextField("Lekarz przyjmujący");
         doctorField.setValue(dto.getLekarz());
         doctorField.setReadOnly(true);
         doctorField.setWidthFull();
 
-        // Pole 2: Pełny powód wizyty
         TextArea reasonArea = new TextArea("Zgłoszony powód wizyty");
         reasonArea.setValue(dto.getPowodWizyty());
         reasonArea.setReadOnly(true);
         reasonArea.setWidthFull();
-        reasonArea.setMinHeight("80px"); // Mniejsze, bo powód zazwyczaj jest krótki
+        reasonArea.setMinHeight("80px");
 
-        // Pole 3: Notatka lekarska / Zalecenia
         TextArea notesArea = new TextArea("Przebieg wizyty i zalecenia (Notatka)");
         notesArea.setValue(dto.getNotatkaLekarza());
         notesArea.setReadOnly(true);
         notesArea.setWidthFull();
-        notesArea.setMinHeight("250px"); // Duże, na właściwy opis leczenia
+        notesArea.setMinHeight("250px");
 
         layout.add(doctorField, reasonArea, notesArea);
 

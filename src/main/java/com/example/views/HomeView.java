@@ -21,7 +21,6 @@ import com.vaadin.flow.server.auth.AnonymousAllowed;
 public class HomeView extends VerticalLayout {
 
     public HomeView() {
-        // --- Ustawienia głównego kontenera ---
         setSizeFull();
         setAlignItems(Alignment.CENTER);
         setJustifyContentMode(JustifyContentMode.START);
@@ -29,15 +28,11 @@ public class HomeView extends VerticalLayout {
         setPadding(true);
         setSpacing(true);
 
-        // --- Sekcja Powitalna (Hero) ---
         VerticalLayout heroSection = new VerticalLayout();
         heroSection.setAlignItems(Alignment.CENTER);
 
-        // TU ZMIANA: Dodajemy margines górny, żeby obniżyć całą sekcję powitalną
-        // Możesz zmienić "100px" na np. "15vh" (15% wysokości ekranu) lub inną wartość
         heroSection.getStyle().set("margin-top", "100px");
 
-        // Opcjonalnie: Zwiększamy odstęp między napisem H1 a przyciskami wewnątrz tej sekcji
         heroSection.setSpacing(true);
 
         heroSection.add(new H1("Witaj w Przychodni BAZUJEMY na zdrowiu"));
@@ -51,7 +46,6 @@ public class HomeView extends VerticalLayout {
 
         heroSection.add(loginBtn, registerBtn);
 
-        // --- Sekcja Informacyjna (Kontakt + Mapa) ---
         FlexLayout contactSection = new FlexLayout();
         contactSection.setFlexWrap(FlexLayout.FlexWrap.WRAP);
         contactSection.setJustifyContentMode(JustifyContentMode.CENTER);
@@ -59,11 +53,9 @@ public class HomeView extends VerticalLayout {
         contactSection.setWidthFull();
         contactSection.getStyle().set("gap", "40px");
 
-        // TU TEŻ: Zwiększyłem margines między przyciskami a mapą, żeby było luźniej
         contactSection.getStyle().set("margin-top", "80px");
         contactSection.getStyle().set("margin-bottom", "50px"); // Margines na dole strony
 
-        // 1. Kolumna z tekstem
         VerticalLayout infoLayout = new VerticalLayout();
         infoLayout.setWidth("auto");
         infoLayout.setAlignItems(Alignment.START);
@@ -77,7 +69,6 @@ public class HomeView extends VerticalLayout {
         infoLayout.add(new Span("Pon - Pt: 08:00 - 18:00"));
         infoLayout.add(new Span("Sobota i Niedziela: Zamknięte"));
 
-        // 2. Mapa Google
         String mapUrl = "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2504.667232386266!2d17.05587431576184!3d51.11475797957256!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x470fe9c4d21650b9%3A0x675841121d28303d!2sPlac%20Grunwaldzki%2C%20Wroc%C5%82aw!5e0!3m2!1spl!2spl!4v1645000000000!5m2!1spl!2spl"; // Pamiętaj o wstawieniu poprawnego linku
 
         IFrame googleMap = new IFrame(mapUrl);

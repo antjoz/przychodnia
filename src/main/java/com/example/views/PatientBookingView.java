@@ -48,22 +48,18 @@ public class PatientBookingView extends VerticalLayout {
         setPadding(true);
         add(new H2("Zarezerwuj nową wizytę"));
 
-        // 1. Wybór specjalizacji
         specializationSelect = new ComboBox<>("Wybierz specjalizację");
         specializationSelect.setWidth("300px");
 
-        // 2. Wybór lekarza (zablokowany do czasu wybrania spec)
         doctorSelect = new ComboBox<>("Wybierz lekarza");
         doctorSelect.setWidth("300px");
         doctorSelect.setEnabled(false);
         doctorSelect.setItemLabelGenerator(u -> u.getImie() + " " + u.getNazwisko());
 
-        // 3. Data (zablokowana do czasu wybrania lekarza)
         datePicker = new DatePicker("Wybierz datę");
         datePicker.setMin(LocalDate.now().plusDays(1)); // Rezerwacja min. na jutro
         datePicker.setEnabled(false);
 
-        // Kontener na kafelki z godzinami
         slotsLayout = new FlexLayout();
         slotsLayout.setFlexWrap(FlexLayout.FlexWrap.WRAP);
         slotsLayout.getStyle().set("gap", "10px");
@@ -83,7 +79,6 @@ public class PatientBookingView extends VerticalLayout {
     }
 
     private void setupListeners() {
-        // Zmiana specjalizacji -> filtruj lekarzy
         specializationSelect.addValueChangeListener(e -> {
             doctorSelect.clear();
             doctorSelect.setEnabled(false);
@@ -105,14 +100,12 @@ public class PatientBookingView extends VerticalLayout {
             }
         });
 
-        // Zmiana lekarza -> odblokuj datę
         doctorSelect.addValueChangeListener(e -> {
             datePicker.clear();
             datePicker.setEnabled(e.getValue() != null);
             slotsLayout.removeAll();
         });
 
-        // Wybór daty -> pobierz harmonogram
         datePicker.addValueChangeListener(e -> loadSlots());
     }
 
@@ -132,7 +125,6 @@ public class PatientBookingView extends VerticalLayout {
             }
 
             for (HarmonogramDTO slot : schedule) {
-                // Dla pacjenta wyświetlamy TYLKO terminy "Wolny"
                 if ("Wolny".equalsIgnoreCase(slot.getStatus())) {
                     Button slotBtn = new Button(slot.getGodzina().toString());
                     slotBtn.addThemeVariants(ButtonVariant.LUMO_CONTRAST);
@@ -184,7 +176,7 @@ public class PatientBookingView extends VerticalLayout {
 
                     receptionService.bookAppointment(
                             slot.getIdTerminu(),
-                            UserSession.getLoggedInUser().getId(), // ID zalogowanego pacjenta
+                            UserSession.getLoggedInUser().getId(),
                             null, null, null, null, null, null, // Dane osobowe puste (już są w bazie)
                             reasonId,
                             customReason.getValue(),
@@ -194,7 +186,7 @@ public class PatientBookingView extends VerticalLayout {
                     Notification.show("Wizyta zarezerwowana! Oczekuj na potwierdzenie.")
                             .addThemeVariants(NotificationVariant.LUMO_SUCCESS);
                     dialog.close();
-                    loadSlots(); // Odśwież widok (zniknie guzik)
+                    loadSlots();
 
                 } catch (Exception ex) {
                     Notification.show("Błąd: " + ex.getMessage());

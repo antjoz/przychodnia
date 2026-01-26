@@ -3,7 +3,7 @@ package com.example.services;
 import org.mindrot.jbcrypt.BCrypt;
 import com.example.data.UserDTO;
 import com.example.data.SpecjalizacjaDTO;
-import com.example.services.DatabaseConnectionService; // Upewnij się, że masz ten import
+import com.example.services.DatabaseConnectionService;
 
 import java.sql.*;
 import java.time.DayOfWeek;
@@ -23,8 +23,6 @@ public class AdminService {
         try {
             conn = DatabaseConnectionService.getConnection();
 
-            // 1. WALIDACJA (Sprawdzamy unikalność zanim zaczniemy transakcję)
-            // Lekarz nie podaje PESELu w tym formularzu, więc dajemy null
             UserValidator.checkUniqueness(conn, login, email, telefon, null);
 
             conn.setAutoCommit(false);
@@ -63,7 +61,7 @@ public class AdminService {
             conn.commit();
         } catch (SQLException e) {
             if (conn != null) try { conn.rollback(); } catch (SQLException ex) {}
-            throw e; // Rzucamy dalej (widok obsłuży komunikat błędu)
+            throw e;
         } finally {
             if (conn != null) try { conn.setAutoCommit(true); conn.close(); } catch (SQLException e) {}
         }
@@ -109,7 +107,7 @@ public class AdminService {
         }
     }
 
-    // --- HELPERY DO WALIDACJI (Przeniesione i dostosowane) ---
+    // --- HELPERY DO WALIDACJI ---
 
     private void checkUniqueness(Connection conn, String login, String email, String telefon, String pesel) throws SQLException {
         // Zmieniam wyjątki na SQLException, aby pasowały do obsługi błędów w Twoim AdminUsersView
@@ -145,7 +143,6 @@ public class AdminService {
         }
     }
 
-    // --- RESZTA METOD (Gettery, Aktualizacja, etc.) BEZ ZMIAN ---
 
     public List<SpecjalizacjaDTO> getAllSpecializations() {
         List<SpecjalizacjaDTO> list = new ArrayList<>();

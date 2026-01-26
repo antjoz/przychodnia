@@ -23,7 +23,6 @@ public class LoginView extends VerticalLayout {
         setAlignItems(Alignment.CENTER);
         setJustifyContentMode(JustifyContentMode.CENTER);
 
-        // Konfiguracja formularza
         LoginI18n i18n = LoginI18n.createDefault();
         LoginI18n.Form i18nForm = i18n.getForm();
         i18nForm.setTitle("Zaloguj się");
@@ -41,13 +40,11 @@ public class LoginView extends VerticalLayout {
         LoginForm loginForm = new LoginForm();
         loginForm.setI18n(i18n);
 
-        // --- OBSŁUGA LOGOWANIA ---
         loginForm.addLoginListener(e -> {
             try {
                 UserSession user = authService.login(e.getUsername(), e.getPassword());
 
                 if (user != null) {
-                    // SUKCES
                     VaadinSession.getCurrent().setAttribute(UserSession.class, user);
 
                     Notification.show("Witaj, " + user.getImie() + "!", 3000, Notification.Position.TOP_CENTER)
@@ -55,16 +52,13 @@ public class LoginView extends VerticalLayout {
 
                     UI.getCurrent().navigate("panel");
                 } else {
-                    // ZŁE HASŁO LUB LOGIN
                     loginForm.setError(true);
                 }
             } catch (AuthService.ValidationException ex) {
-                // KONTO ZABLOKOWANE / NIEAKTYWNE
                 loginForm.setError(true);
                 Notification.show(ex.getMessage(), 5000, Notification.Position.MIDDLE)
                         .addThemeVariants(NotificationVariant.LUMO_ERROR);
             } catch (Exception ex) {
-                // BŁĄD SYSTEMU
                 Notification.show("Wystąpił błąd serwera: " + ex.getMessage(), 5000, Notification.Position.MIDDLE)
                         .addThemeVariants(NotificationVariant.LUMO_ERROR);
             }

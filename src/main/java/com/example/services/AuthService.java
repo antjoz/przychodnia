@@ -18,7 +18,6 @@ public class AuthService {
             ? System.getenv("DB_PASSWORD")
             : "1234";
 
-    // Wyjątek do przekazywania komunikatów błędów do widoku
     public static class ValidationException extends Exception {
         public ValidationException(String message) { super(message); }
     }
@@ -29,8 +28,6 @@ public class AuthService {
 
         try (Connection conn = DriverManager.getConnection(URL, USER, PASS)) {
 
-            // 1. Sprawdzenie unikalności PRZED rozpoczęciem transakcji
-            // Dzięki temu użytkownik dostanie ładny komunikat zamiast błędu SQL
             checkUniqueness(conn, login, email, telefon, pesel);
 
             conn.setAutoCommit(false); // Start transakcji
@@ -38,7 +35,6 @@ public class AuthService {
             try {
                 String hashedPassword = BCrypt.hashpw(password, BCrypt.gensalt());
 
-                // Domyślnie pacjent jest aktywny (Czy_aktywny = TRUE)
                 String sqlUzytkownik = "INSERT INTO Uzytkownik (Imie, Nazwisko, Login, Haslo, Numer_telefonu, Email, Rola, Czy_aktywny) " +
                         "VALUES (?, ?, ?, ?, ?, ?, 'Pacjent', TRUE)";
 
@@ -46,7 +42,6 @@ public class AuthService {
 
                 long generatedId = -1;
 
-                // Wstawianie do Uzytkownik
                 try (PreparedStatement stmtUser = conn.prepareStatement(sqlUzytkownik, Statement.RETURN_GENERATED_KEYS)) {
                     stmtUser.setString(1, imie);
                     stmtUser.setString(2, nazwisko);
@@ -67,7 +62,6 @@ public class AuthService {
                     }
                 }
 
-                // Wstawianie do Pacjent
                 try (PreparedStatement stmtPatient = conn.prepareStatement(sqlPacjent)) {
                     stmtPatient.setLong(1, generatedId);
                     stmtPatient.setString(2, pesel);
@@ -75,11 +69,10 @@ public class AuthService {
                     stmtPatient.executeUpdate();
                 }
 
-                conn.commit(); // Zatwierdzenie zmian
+                conn.commit();
 
             } catch (SQLException e) {
-                conn.rollback(); // Wycofanie zmian w razie błędu
-                // Zabezpieczenie na wypadek wyścigu (race condition)
+                conn.rollback();
                 if ("23505".equals(e.getSQLState())) {
                     throw new ValidationException("Jeden z podanych danych (Login, Email, Telefon lub PESEL) jest już w bazie.");
                 }
@@ -126,10 +119,9 @@ public class AuthService {
             e.printStackTrace();
             throw new Exception("Błąd systemu logowania.");
         }
-        return null; // Niepoprawny login lub hasło
+        return null;
     }
 
-    // --- METODY POMOCNICZE ---
 
     private void checkUniqueness(Connection conn, String login, String email, String telefon, String pesel) throws SQLException, ValidationException {
         if (exists(conn, "Uzytkownik", "Login", login))
@@ -146,7 +138,6 @@ public class AuthService {
     }
 
     private boolean exists(Connection conn, String table, String column, String value) throws SQLException {
-        // Zapytanie jest bezpieczne, bo nazwy tabel/kolumn są wpisane "na sztywno" w kodzie wyżej
         String sql = "SELECT 1 FROM " + table + " WHERE " + column + " = ?";
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, value);

@@ -30,7 +30,7 @@ public class DoctorsListView extends VerticalLayout {
     private TextField searchField = new TextField();
     private ComboBox<String> specializationFilter = new ComboBox<>();
 
-    private List<UserDTO> allDoctors; // Przechowujemy listę lokalnie do filtrowania
+    private List<UserDTO> allDoctors;
 
     public DoctorsListView() {
         UserSession user = UserSession.getLoggedInUser();

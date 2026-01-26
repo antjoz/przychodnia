@@ -19,7 +19,6 @@ public class ReceptionService {
         public ValidationException(String message) { super(message); }
     }
 
-    // --- 1. Pobieranie lekarzy ---
     public List<UserDTO> getAllDoctors() throws SQLException {
         List<UserDTO> doctors = new ArrayList<>();
         String query = "SELECT u.*, s.specjalizacja " +
@@ -51,7 +50,6 @@ public class ReceptionService {
         return doctors;
     }
 
-    // --- 2. Specjalizacje ---
     public List<String> getAllSpecializations() throws SQLException {
         List<String> specs = new ArrayList<>();
         String query = "SELECT specjalizacja FROM Specjalizacja";
@@ -65,7 +63,6 @@ public class ReceptionService {
         return specs;
     }
 
-    // --- 3. Lekarz po ID ---
     public UserDTO getDoctorById(int id) throws SQLException {
         String query = "SELECT u.*, s.specjalizacja " +
                 "FROM Uzytkownik u " +
@@ -97,7 +94,6 @@ public class ReceptionService {
         return null;
     }
 
-    // --- 4. Harmonogram ---
     public List<HarmonogramDTO> getScheduleForDoctor(int doctorId, LocalDate date) throws SQLException {
         Map<Integer, HarmonogramDTO> scheduleMap = new LinkedHashMap<>();
 
@@ -150,7 +146,6 @@ public class ReceptionService {
                         idRezerwacji = rs.getInt("wizyta_id");
                     }
 
-                    // Używamy pustego konstruktora i setterów dla bezpieczeństwa
                     HarmonogramDTO dto = new HarmonogramDTO();
                     dto.setIdTerminu(terminId);
                     dto.setStatus(displayStatus);
@@ -160,7 +155,6 @@ public class ReceptionService {
                     dto.setNazwiskoPacjenta(nazwisko);
                     dto.setPowodWizyty(powod);
                     dto.setIdRezerwacji(idRezerwacji);
-                    // Reszta pól domyślnie null/0
 
                     if (!scheduleMap.containsKey(terminId)) {
                         scheduleMap.put(terminId, dto);
@@ -175,7 +169,6 @@ public class ReceptionService {
         return new ArrayList<>(scheduleMap.values());
     }
 
-    // --- 5. Oczekujące rezerwacje ---
     public List<HarmonogramDTO> getPendingReservations() throws SQLException {
         List<HarmonogramDTO> list = new ArrayList<>();
         String query =
@@ -214,7 +207,6 @@ public class ReceptionService {
         return list;
     }
 
-    // --- 6. Pacjenci ---
     public List<UserDTO> getAllPatients() throws SQLException {
         List<UserDTO> patients = new ArrayList<>();
         String query = "SELECT u.*, p.PESEL, p.Adres FROM Uzytkownik u " +
@@ -242,7 +234,6 @@ public class ReceptionService {
         return patients;
     }
 
-    // --- 7. Powody wizyt ---
     public Map<Integer, String> getVisitReasons(int doctorId) throws SQLException {
         Map<Integer, String> reasons = new LinkedHashMap<>();
         String query = "SELECT pw.ID_PowodWizyty, pw.Powod_wizyty " +
@@ -263,12 +254,11 @@ public class ReceptionService {
         return reasons;
     }
 
-    // --- 8. Rezerwacja ---
     public BookingResult bookAppointment(int terminId, Integer existingPatientId,
                                          String newName, String newSurname, String newPesel,
                                          String newPhone, String newEmail, String newAddress,
                                          int reasonId, String visitReasonNote,
-                                         String initialStatus) // <--- NOWY PARAMETR
+                                         String initialStatus)
             throws SQLException, ValidationException {
 
         Connection conn = null;
@@ -287,9 +277,7 @@ public class ReceptionService {
             conn.setAutoCommit(false);
             int finalPatientId;
 
-            // ... (Logika tworzenia pacjenta bez zmian) ...
             if (existingPatientId == null) {
-                // ... (Kod tworzenia konta bez zmian) ...
                 generatedLogin = (newName.substring(0, 1) + newSurname + newPesel.substring(0, 3)).toLowerCase();
                 if (UserValidator.exists(conn, "Uzytkownik", "Login", generatedLogin)) {
                     generatedLogin += "1";
@@ -316,8 +304,6 @@ public class ReceptionService {
                 finalPatientId = existingPatientId;
             }
 
-            // --- TUTAJ ZMIANA ---
-            // Zamiast wpisywać na sztywno 'Wymaga_Rejestracja', wstawiamy ?
             String insertReserv = "INSERT INTO Rezerwacja (ID_Terminu, ID_Pacjenta, Status_rezerwacji) VALUES (?, ?, ?) RETURNING ID_Rezerwacji";
             int idRezerwacji = -1;
             try (PreparedStatement stmtRes = conn.prepareStatement(insertReserv)) {
@@ -329,7 +315,6 @@ public class ReceptionService {
                     else throw new SQLException("Błąd tworzenia rezerwacji.");
                 }
             }
-            // --------------------
 
             String insertVisit = "INSERT INTO Wizyta (ID_Rezerwacji, ID_PowodWizyty, Opis_Powodu, Notatka) VALUES (?, ?, ?, ?)";
             try (PreparedStatement stmtVis = conn.prepareStatement(insertVisit)) {
@@ -352,7 +337,6 @@ public class ReceptionService {
         }
     }
 
-    // --- 9. Szczegóły wizyty (ZWRACA HarmonogramDTO) ---
     public HarmonogramDTO getAppointmentDetails(int terminId) throws SQLException {
         String query = "SELECT r.ID_Rezerwacji, u.Imie, u.Nazwisko, u.Numer_telefonu, u.Email, p.PESEL, r.Status_rezerwacji, w.Opis_Powodu " +
                 "FROM Rezerwacja r " +
@@ -389,8 +373,6 @@ public class ReceptionService {
             conn = DatabaseConnectionService.getConnection();
             conn.setAutoCommit(false);
 
-            // Krok A: Sprawdź, czy nowy termin jest faktycznie wolny
-            // Sprawdzamy czy istnieje jakakolwiek rezerwacja dla tego ID_Terminu
             String checkQuery = "SELECT COUNT(*) FROM Rezerwacja WHERE ID_Terminu = ?";
             try (PreparedStatement chkStmt = conn.prepareStatement(checkQuery)) {
                 chkStmt.setInt(1, newTerminId);
@@ -422,7 +404,6 @@ public class ReceptionService {
             if (conn != null) { conn.setAutoCommit(true); conn.close(); }
         }
     }
-    // --- 10. Rezerwacje pacjenta ---
     public List<HarmonogramDTO> getPatientReservations(int patientId) throws SQLException {
         List<HarmonogramDTO> list = new ArrayList<>();
 
@@ -451,22 +432,21 @@ public class ReceptionService {
                     dto.setData(rs.getDate("Data").toLocalDate());
                     dto.setGodzina(rs.getTime("Godzina").toLocalTime());
 
-                    // Budowanie lekarza
+
                     String lekarzInfo = rs.getString("LekarzImie") + " " + rs.getString("LekarzNazwisko") +
                             (rs.getString("Specjalizacja") != null ? " (" + rs.getString("Specjalizacja") + ")" : "");
                     dto.setLekarz(lekarzInfo);
 
-                    // --- LOGIKA POWODU ---
+
                     String standardReason = rs.getString("Powod_wizyty");
                     String customReason = rs.getString("Opis_Powodu");
 
-                    // Jeśli jest standardowy powód -> użyj go, jeśli nie -> użyj opisu ręcznego
+
                     if (standardReason != null) {
                         dto.setPowodWizyty(standardReason);
                     } else {
                         dto.setPowodWizyty(customReason);
                     }
-                    // ---------------------
 
                     list.add(dto);
                 }
@@ -475,7 +455,6 @@ public class ReceptionService {
         return list;
     }
 
-    // --- 11. Zmiana statusu ---
     public void updateAppointmentStatus(int terminId, String newStatus) throws SQLException {
         Connection conn = null;
         try {

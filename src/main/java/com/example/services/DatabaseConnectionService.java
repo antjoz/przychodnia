@@ -5,7 +5,6 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 
 public class DatabaseConnectionService {
-    // Program najpierw sprawdza zmienne systemowe, a jak ich nie ma, bierze localhost
     private static final String URL = System.getenv("DB_URL") != null
             ? System.getenv("DB_URL")
             : "jdbc:postgresql://localhost:5432/przychodnia_db";

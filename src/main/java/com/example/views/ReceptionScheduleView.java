@@ -377,7 +377,6 @@ public class ReceptionScheduleView extends VerticalLayout implements HasUrlParam
                 return;
             }
 
-            // 1. Pola informacyjne
             TextField patientName = new TextField("Pacjent");
             patientName.setValue(details.getImiePacjenta() + " " + details.getNazwiskoPacjenta());
             patientName.setReadOnly(true);
@@ -393,30 +392,25 @@ public class ReceptionScheduleView extends VerticalLayout implements HasUrlParam
             phoneField.setReadOnly(true);
             phoneField.setWidthFull();
 
-            // --- POPRAWKA: Dodajemy pole wyświetlające aktualny status ---
             TextField currentStatusField = new TextField("Aktualny status");
             currentStatusField.setValue(details.getStatus() != null ? details.getStatus() : "Brak");
             currentStatusField.setReadOnly(true);
             currentStatusField.setWidthFull();
             currentStatusField.addThemeNames("small"); // Opcjonalnie mniejsza czcionka
 
-            // 2. Status wizyty (Wyświetlanie i Edycja)
             Select<String> statusSelect = new Select<>();
             statusSelect.setLabel("Zmień status na");
 
-            // --- POPRAWKA: Lista musi zawierać WSZYSTKIE możliwe statusy, żeby Select mógł wyświetlić aktualny ---
             statusSelect.setItems(
                     "Wymaga potwierdzenia przez pacjenta",
                     "Anulowana"
             );
 
-            // Ustawienie wartości z DTO
             if (details.getStatus() != null) {
                 statusSelect.setValue(details.getStatus());
             }
             statusSelect.setWidthFull();
 
-            // --- PRZYCISKI AKCJI ---
 
             Button saveStatusBtn = new Button("Zapisz status", e -> {
                 try {
@@ -430,14 +424,12 @@ public class ReceptionScheduleView extends VerticalLayout implements HasUrlParam
             });
             saveStatusBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
 
-            // Przycisk "Przełóż wizytę"
             Button rescheduleBtn = new Button("Przełóż wizytę", VaadinIcon.CALENDAR_CLOCK.create(), e -> {
                 dialog.close();
                 openRescheduleDialog(details.getIdRezerwacji(), slot);
             });
             rescheduleBtn.addThemeVariants(ButtonVariant.LUMO_CONTRAST);
 
-            // Blokada przycisku "Przełóż", jeśli wizyta jest już odbyta/zrealizowana
             String currentStatus = details.getStatus();
             boolean isCompleted = "Odbyta".equalsIgnoreCase(currentStatus) ||
                     "Zrealizowana".equalsIgnoreCase(currentStatus);

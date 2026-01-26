@@ -39,7 +39,6 @@ public class PatientHistoryView extends VerticalLayout {
         setPadding(true);
         add(new H2("Historia Twoich wizyt"));
 
-        // --- FILTRY ---
         HorizontalLayout filters = new HorizontalLayout();
         filters.setAlignItems(Alignment.BASELINE);
 
@@ -55,14 +54,12 @@ public class PatientHistoryView extends VerticalLayout {
 
         filters.add(specializationFilter, dateFrom, dateTo);
 
-        // Listener odświeżania filtrów
         specializationFilter.addValueChangeListener(e -> filterGrid());
         dateFrom.addValueChangeListener(e -> filterGrid());
         dateTo.addValueChangeListener(e -> filterGrid());
 
         add(filters);
 
-        // --- TABELA ---
         grid = new Grid<>();
         grid.addColumn(HarmonogramDTO::getData).setHeader("Data").setSortable(true);
         grid.addColumn(HarmonogramDTO::getGodzina).setHeader("Godzina");
@@ -88,17 +85,14 @@ public class PatientHistoryView extends VerticalLayout {
         if (dataProvider == null) return;
 
         dataProvider.setFilter(dto -> {
-            // Filtr specjalizacji (sprawdzamy czy string lekarza zawiera specj.)
             boolean specMatch = true;
             if (specializationFilter.getValue() != null) {
-                // Lekarz w DTO ma format: "Jan Kowalski (Kardiolog)"
-                // Więc sprawdzamy czy zawiera nazwę specjalizacji
+
                 if (dto.getLekarz() == null || !dto.getLekarz().contains(specializationFilter.getValue())) {
                     specMatch = false;
                 }
             }
 
-            // Filtr daty Od
             boolean dateFromMatch = true;
             if (dateFrom.getValue() != null) {
                 if (dto.getData().isBefore(dateFrom.getValue())) {
@@ -106,7 +100,6 @@ public class PatientHistoryView extends VerticalLayout {
                 }
             }
 
-            // Filtr daty Do
             boolean dateToMatch = true;
             if (dateTo.getValue() != null) {
                 if (dto.getData().isAfter(dateTo.getValue())) {

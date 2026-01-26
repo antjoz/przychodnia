@@ -12,7 +12,6 @@ public class SpecjalizacjaDTO {
     public int getId() { return id; }
     public String getNazwa() { return nazwa; }
 
-    // To ważne, aby ComboBox mógł czasem wyświetlić tekst domyślnie
     @Override
     public String toString() {
         return nazwa;

@@ -7,9 +7,6 @@ import java.util.Map;
 
 public class AdminStatsService {
 
-    // Pobiera dane do wykresu.
-    // isCancellation = true -> Pobiera tylko 'Anulowana'
-    // isCancellation = false -> Pobiera wszystko co NIE JEST 'Anulowana'
     public Map<LocalDate, Integer> getDailyStats(LocalDate start, LocalDate end, boolean isCancellation) {
 
         // 1. Przygotuj mapę z zerami dla każdego dnia z zakresu (żeby wykres nie miał dziur)
@@ -20,8 +17,6 @@ public class AdminStatsService {
             current = current.plusDays(1);
         }
 
-        // 2. Budujemy zapytanie SQL
-        // Używamy standardowego <>, który działa w MySQL i Postgres jako "różne od"
         String operator = isCancellation ? "=" : "<>";
 
         String sql = "SELECT t.Data, COUNT(r.ID_Rezerwacji) as Liczba " +
@@ -41,7 +36,6 @@ public class AdminStatsService {
                 while (rs.next()) {
                     LocalDate date = rs.getDate("Data").toLocalDate();
                     int count = rs.getInt("Liczba");
-                    // Nadpisujemy 0 wartością z bazy
                     if (stats.containsKey(date)) {
                         stats.put(date, count);
                     }

@@ -8,11 +8,9 @@ import java.util.List;
 
 public class DoctorService {
 
-    // 1. Pobierz harmonogram (z uwzględnieniem statusów i danych pacjenta z tabeli Uzytkownik)
     public List<HarmonogramDTO> getSchedule(int doctorId, LocalDate date) throws SQLException {
         List<HarmonogramDTO> list = new ArrayList<>();
 
-        // ZMIANA: Musimy połączyć Pacjenta z Uzytkownikiem, aby dostać Imie i Nazwisko
         String query = """
             SELECT t.ID_Terminu, t.Data, t.Godzina, 
                    r.ID_Rezerwacji, r.Status_rezerwacji, 
@@ -42,7 +40,6 @@ public class DoctorService {
                     if (status == null) status = "Wolny";
                     dto.setStatus(status);
 
-                    // Sprawdzamy ID_Uzytkownika (klucz pacjenta)
                     if (rs.getObject("ID_Uzytkownika") != null) {
                         dto.setIdPacjenta(rs.getInt("ID_Uzytkownika"));
                         // Imie i Nazwisko bierzemy z tabeli Uzytkownik (alias 'u')
@@ -57,7 +54,6 @@ public class DoctorService {
         return list;
     }
 
-    // 2. Pobierz szczegóły jednej wizyty (JOIN do Uzytkownik dla Pacjenta)
     public HarmonogramDTO getVisitDetails(int terminId) throws SQLException {
         String query = """
             SELECT t.ID_Terminu, t.Data, 
@@ -84,17 +80,15 @@ public class DoctorService {
                     dto.setImiePacjenta(rs.getString("Imie"));
                     dto.setNazwiskoPacjenta(rs.getString("Nazwisko"));
 
-                    // Dane kontaktowe
                     dto.setPesel(rs.getString("PESEL"));
                     dto.setTelefon(rs.getString("Numer_telefonu"));
                     dto.setEmail(rs.getString("Email"));
 
-                    // --- LOGIKA POWODU (Dlaczego przyszedł?) ---
+
                     String standard = rs.getString("Powod_wizyty");
                     String custom = rs.getString("Opis_Powodu");
                     dto.setPowodWizyty(standard != null ? standard : custom);
 
-                    // --- NOTATKA LEKARZA (Co lekarz wpisał?) ---
                     dto.setNotatkaLekarza(rs.getString("Notatka"));
 
                     return dto;
@@ -143,7 +137,6 @@ public class DoctorService {
         }
     }
 
-    // 4. Pobierz historię pacjenta (JOIN do Uzytkownik dla Lekarza)
     public List<HarmonogramDTO> getPatientHistory(int patientId) throws SQLException {
         List<HarmonogramDTO> list = new ArrayList<>();
         String query = """
@@ -173,13 +166,10 @@ public class DoctorService {
                             (rs.getString("Specjalizacja") != null ? " (" + rs.getString("Specjalizacja") + ")" : "");
                     dto.setLekarz(lekarzStr);
 
-                    // Rozdzielamy dane!
 
-                    // 1. Powód (z tabeli lub opis ręczny)
                     String powod = (rs.getString("Powod_wizyty") != null) ? rs.getString("Powod_wizyty") : rs.getString("Opis_Powodu");
                     dto.setPowodWizyty(powod != null ? powod : "-");
 
-                    // 2. Notatka lekarska (zalecenia)
                     String notatka = rs.getString("Notatka");
                     dto.setNotatkaLekarza(notatka != null ? notatka : "Brak notatki");
 

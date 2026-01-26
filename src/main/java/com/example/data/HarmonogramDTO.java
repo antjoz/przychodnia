@@ -24,8 +24,8 @@ public class HarmonogramDTO {
     private String email;
 
     // --- KLUCZOWA ZMIANA ---
-    private String powodWizyty;    // To będzie: "Ból głowy" (z tabeli) LUB "Pacjent skarży się na..." (opis ręczny)
-    private String notatkaLekarza; // To jest: "Zalecenia, przebieg badania" (kolumna Notatka z tabeli Wizyta)
+    private String powodWizyty;
+    private String notatkaLekarza;
 
     public HarmonogramDTO() {}
 
