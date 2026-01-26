@@ -411,6 +411,7 @@ public class ReceptionService {
                     throw new SQLException("Nie znaleziono rezerwacji do aktualizacji.");
                 }
             }
+
             updateAppointmentStatus(newTerminId, "Wymaga potwierdzenia przez pacjenta");
 
             conn.commit();

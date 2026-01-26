@@ -78,6 +78,7 @@ public class MainLayout extends AppLayout {
         // 4. OPCJE ADMINA
         else if ("Admin".equals(user.getRola())) {
             menuLayout.add(createMenuButton("Użytkownicy", VaadinIcon.USERS.create(), AdminUsersView.class));
+            menuLayout.add(createMenuButton("Statystyki", VaadinIcon.CHART.create(), AdminStatsView.class));
         }
 
         else if ("Rejestracja".equals(user.getRola())) {
