@@ -4,7 +4,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 
 public class HarmonogramDTO {
-    // Podstawowe
+
     private int idTerminu;
     private String status;
     private LocalDate data;
@@ -12,24 +12,20 @@ public class HarmonogramDTO {
     private int idLekarza;
     private String lekarz;
 
-    // Pacjent
     private int idRezerwacji;
     private int idPacjenta;
     private String imiePacjenta;
     private String nazwiskoPacjenta;
 
-    // Dane kontaktowe
     private String pesel;
     private String telefon;
     private String email;
 
-    // --- KLUCZOWA ZMIANA ---
     private String powodWizyty;
     private String notatkaLekarza;
 
     public HarmonogramDTO() {}
 
-    // Gettery
     public int getIdTerminu() { return idTerminu; }
     public String getStatus() { return status; }
     public LocalDate getData() { return data; }
@@ -46,7 +42,6 @@ public class HarmonogramDTO {
     public String getPowodWizyty() { return powodWizyty; }
     public String getNotatkaLekarza() { return notatkaLekarza; }
 
-    // Settery
     public void setIdTerminu(int idTerminu) { this.idTerminu = idTerminu; }
     public void setStatus(String status) { this.status = status; }
     public void setData(LocalDate data) { this.data = data; }

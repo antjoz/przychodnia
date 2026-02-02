@@ -72,12 +72,10 @@ public class DoctorsListView extends VerticalLayout {
         grid.addColumn(UserDTO::getNazwisko).setHeader("Nazwisko").setSortable(true);
         grid.addColumn(UserDTO::getSpecjalizacja).setHeader("Specjalizacja");
 
-        // Przycisk akcji
         grid.addComponentColumn(doctor -> {
             Button scheduleBtn = new Button("Grafik", VaadinIcon.CALENDAR.create());
             scheduleBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SMALL);
             scheduleBtn.addClickListener(e ->
-                    // NAWIGACJA Z PARAMETREM ID
                     getUI().ifPresent(ui -> ui.navigate(ReceptionScheduleView.class, doctor.getId()))
             );
             return scheduleBtn;

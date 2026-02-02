@@ -13,7 +13,6 @@ public class UserDTO {
     private String specjalizacja;
     private String pesel;
 
-    // Główny konstruktor ze wszystkimi polami
     public UserDTO(int id, String imie, String nazwisko, String login, String rola,
                    String email, String telefon, boolean czyAktywny,
                    Integer idLekarza, String specjalizacja, String pesel) {
@@ -30,13 +29,11 @@ public class UserDTO {
         this.pesel = pesel;
     }
 
-    // Konstruktor uproszczony (dla kompatybilności lub gdy PESEL nie jest potrzebny)
     public UserDTO(int id, String imie, String nazwisko, String login, String rola,
                    String email, String telefon, boolean czyAktywny, Integer idLekarza, String specjalizacja) {
         this(id, imie, nazwisko, login, rola, email, telefon, czyAktywny, idLekarza, specjalizacja, null);
     }
 
-    // Gettery
     public int getId() { return id; }
     public String getImie() { return imie; }
     public String getNazwisko() { return nazwisko; }
@@ -49,7 +46,6 @@ public class UserDTO {
     public String getSpecjalizacja() { return specjalizacja; }
     public String getPesel() { return pesel; }
 
-    // Settery (opcjonalne, zależnie od potrzeb)
     public void setCzyAktywny(boolean czyAktywny) { this.czyAktywny = czyAktywny; }
     public void setSpecjalizacja(String specjalizacja) { this.specjalizacja = specjalizacja; }
     public void setPesel(String pesel) { this.pesel = pesel; }

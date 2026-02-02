@@ -57,7 +57,7 @@ public class PatientBookingView extends VerticalLayout {
         doctorSelect.setItemLabelGenerator(u -> u.getImie() + " " + u.getNazwisko());
 
         datePicker = new DatePicker("Wybierz datę");
-        datePicker.setMin(LocalDate.now().plusDays(1)); // Rezerwacja min. na jutro
+        datePicker.setMin(LocalDate.now().plusDays(1));
         datePicker.setEnabled(false);
 
         slotsLayout = new FlexLayout();
@@ -151,7 +151,6 @@ public class PatientBookingView extends VerticalLayout {
             Map<Integer, String> reasons = receptionService.getVisitReasons(doctorSelect.getValue().getId());
             reasonCombo.setItems(reasons.values());
 
-            // Mapa pomocnicza ID -> Nazwa
             final Map<Integer, String> finalReasons = reasons;
 
             reasonCombo.addValueChangeListener(e -> {

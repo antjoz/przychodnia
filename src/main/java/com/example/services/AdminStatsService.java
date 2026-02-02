@@ -9,7 +9,6 @@ public class AdminStatsService {
 
     public Map<LocalDate, Integer> getDailyStats(LocalDate start, LocalDate end, boolean isCancellation) {
 
-        // 1. Przygotuj mapę z zerami dla każdego dnia z zakresu (żeby wykres nie miał dziur)
         Map<LocalDate, Integer> stats = new LinkedHashMap<>();
         LocalDate current = start;
         while (!current.isAfter(end)) {

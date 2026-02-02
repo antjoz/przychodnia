@@ -256,7 +256,6 @@ public class AdminUsersView extends VerticalLayout {
         TextField login = new TextField("Login");
 
         PasswordField haslo = new PasswordField("Hasło");
-        // Ustawienie podpowiedzi dla użytkownika w polu
         haslo.setHelperText("Min. 8 znaków, 1 litera, 1 cyfra");
 
         EmailField email = new EmailField("Email");
@@ -309,14 +308,12 @@ public class AdminUsersView extends VerticalLayout {
         Button saveButton = new Button("Utwórz konto", e -> {
             if (rola.isEmpty()) return;
 
-            // --- ZMIANA 2: Walidacja hasła ---
             String passwordVal = haslo.getValue();
             if (passwordVal == null || passwordVal.length() < 8) {
                 Notification.show("Hasło musi mieć co najmniej 8 znaków!")
                         .addThemeVariants(NotificationVariant.LUMO_ERROR);
                 return;
             }
-            // Sprawdzenie czy jest litera i cyfra
             if (!passwordVal.matches(".*[a-zA-Z].*") || !passwordVal.matches(".*\\d.*")) {
                 Notification.show("Hasło musi zawierać co najmniej jedną literę i jedną cyfrę!")
                         .addThemeVariants(NotificationVariant.LUMO_ERROR);

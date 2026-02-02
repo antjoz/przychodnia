@@ -3,6 +3,7 @@ package com.example.services;
 import com.example.data.BookingResult;
 import com.example.data.HarmonogramDTO;
 import com.example.data.UserDTO;
+import com.example.security.UserValidator;
 import org.mindrot.jbcrypt.BCrypt;
 
 import java.sql.*;
@@ -309,7 +310,7 @@ public class ReceptionService {
             try (PreparedStatement stmtRes = conn.prepareStatement(insertReserv)) {
                 stmtRes.setInt(1, terminId);
                 stmtRes.setInt(2, finalPatientId);
-                stmtRes.setString(3, initialStatus); // <--- Ustawiamy status z parametru
+                stmtRes.setString(3, initialStatus);
                 try (ResultSet rs = stmtRes.executeQuery()) {
                     if (rs.next()) idRezerwacji = rs.getInt(1);
                     else throw new SQLException("Błąd tworzenia rezerwacji.");
@@ -351,7 +352,7 @@ public class ReceptionService {
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
                     HarmonogramDTO dto = new HarmonogramDTO();
-                    dto.setIdRezerwacji(rs.getInt("ID_Rezerwacji")); // <-- TO JEST KLUCZOWE
+                    dto.setIdRezerwacji(rs.getInt("ID_Rezerwacji"));
                     dto.setImiePacjenta(rs.getString("Imie"));
                     dto.setNazwiskoPacjenta(rs.getString("Nazwisko"));
                     dto.setPesel(rs.getString("PESEL"));
@@ -383,7 +384,6 @@ public class ReceptionService {
                 }
             }
 
-            // Krok B: Aktualizacja ID_Terminu w tabeli Rezerwacja
             String updateQuery = "UPDATE Rezerwacja SET ID_Terminu = ? WHERE ID_Rezerwacji = ?";
             try (PreparedStatement stmt = conn.prepareStatement(updateQuery)) {
                 stmt.setInt(1, newTerminId);
@@ -407,17 +407,16 @@ public class ReceptionService {
     public List<HarmonogramDTO> getPatientReservations(int patientId) throws SQLException {
         List<HarmonogramDTO> list = new ArrayList<>();
 
-        // JOINujemy tabelę PowodWizyty (pw)
         String query = "SELECT r.ID_Rezerwacji, r.Status_rezerwacji, t.ID_Terminu, t.Data, t.Godzina, " +
                 "       l_u.Imie AS LekarzImie, l_u.Nazwisko AS LekarzNazwisko, s.Specjalizacja, " +
-                "       w.Opis_Powodu, pw.Powod_wizyty " +  // <-- Pobieramy oba pola
+                "       w.Opis_Powodu, pw.Powod_wizyty " +
                 "FROM Rezerwacja r " +
                 "JOIN Termin t ON r.ID_Terminu = t.ID_Terminu " +
                 "JOIN Lekarz l ON t.ID_Lekarza = l.ID_Uzytkownika " +
                 "JOIN Uzytkownik l_u ON l.ID_Uzytkownika = l_u.ID_Uzytkownika " +
                 "LEFT JOIN Specjalizacja s ON l.ID_Specjalizacji = s.ID_Specjalizacji " +
                 "LEFT JOIN Wizyta w ON r.ID_Rezerwacji = w.ID_Rezerwacji " +
-                "LEFT JOIN PowodWizyty pw ON w.ID_PowodWizyty = pw.ID_PowodWizyty " + // <-- JOIN
+                "LEFT JOIN PowodWizyty pw ON w.ID_PowodWizyty = pw.ID_PowodWizyty " +
                 "WHERE r.ID_Pacjenta = ? " +
                 "ORDER BY t.Data DESC, t.Godzina DESC";
 

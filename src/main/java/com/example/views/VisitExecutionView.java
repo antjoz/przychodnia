@@ -38,8 +38,8 @@ public class VisitExecutionView extends VerticalLayout implements HasUrlParamete
     private TextField phoneField = new TextField("Telefon");
     private TextField emailField = new TextField("E-mail");
 
-    private TextField reasonField = new TextField("Powód wizyty (zgłoszenie pacjenta)"); // NOWE POLE
-    private TextArea notesField = new TextArea("Notatka Lekarska / Zalecenia"); // TO JEST NOTATKA
+    private TextField reasonField = new TextField("Powód wizyty (zgłoszenie pacjenta)");
+    private TextArea notesField = new TextArea("Notatka Lekarska / Zalecenia");
 
     private Button historyBtn = new Button("Historia Pacjenta", VaadinIcon.ARCHIVE.create());
 

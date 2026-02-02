@@ -52,7 +52,7 @@ public class RegisterView extends VerticalLayout {
 
         TextField telefonField = new TextField("Telefon");
         telefonField.setMaxLength(16);
-        telefonField.setAllowedCharPattern("[0-9+]"); // Pozwalamy na plusa
+        telefonField.setAllowedCharPattern("[0-9+]");
         telefonField.setHelperText("Np. 123456789 lub +48...");
 
         EmailField emailField = new EmailField("E-mail");

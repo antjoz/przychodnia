@@ -41,7 +41,6 @@ public class ReceptionScheduleView extends VerticalLayout implements HasUrlParam
 
     private final ReceptionService receptionService = new ReceptionService();
 
-    // Zmienne do nawigacji tygodniowej
     private LocalDate currentWeekStart;
     private H3 weekRangeLabel;
     private HorizontalLayout scheduleContainer;
@@ -59,10 +58,8 @@ public class ReceptionScheduleView extends VerticalLayout implements HasUrlParam
         setSizeFull();
         setPadding(true);
 
-        // Startujemy od obecnego poniedziałku
         currentWeekStart = LocalDate.now().with(ChronoField.DAY_OF_WEEK, 1);
 
-        // --- GÓRNY PASEK (Powrót + Tytuł) ---
         Button backButton = new Button("Lista lekarzy", VaadinIcon.ARROW_LEFT.create(), e ->
                 getUI().ifPresent(ui -> ui.navigate(DoctorsListView.class))
         );
@@ -71,7 +68,6 @@ public class ReceptionScheduleView extends VerticalLayout implements HasUrlParam
         HorizontalLayout headerLayout = new HorizontalLayout(backButton, headerTitle);
         headerLayout.setAlignItems(Alignment.CENTER);
 
-        // --- PASEK NAWIGACJI (Poprzedni, Data, Następny, Skocz do daty) ---
         Button prevWeekBtn = new Button(VaadinIcon.ANGLE_LEFT.create(), e -> {
             currentWeekStart = currentWeekStart.minusWeeks(1);
             loadSchedule();
@@ -90,7 +86,6 @@ public class ReceptionScheduleView extends VerticalLayout implements HasUrlParam
         jumpToDate.setLocale(new Locale("pl", "PL"));
         jumpToDate.addValueChangeListener(e -> {
             if (e.getValue() != null) {
-                // Ustawiamy currentWeekStart na poniedziałek wybranego tygodnia
                 currentWeekStart = e.getValue().with(ChronoField.DAY_OF_WEEK, 1);
                 loadSchedule();
             }
@@ -242,7 +237,7 @@ public class ReceptionScheduleView extends VerticalLayout implements HasUrlParam
         patientCombo.setItemLabelGenerator(u -> u.getImie() + " " + u.getNazwisko() + " (" + u.getPesel() + ")");
         try {
             patientCombo.setItems(receptionService.getAllPatients());
-        } catch (SQLException e) { /* Ignored */ }
+        } catch (SQLException e) { }
         existingPatientLayout.add(patientCombo);
 
         FormLayout newPatientForm = new FormLayout();
@@ -314,24 +309,22 @@ public class ReceptionScheduleView extends VerticalLayout implements HasUrlParam
                 String customNote = customReasonField.getValue();
                 BookingResult result;
 
-                // W metodzie openBookingDialog -> wewnątrz listenera saveButton:
 
                 if ("Wybierz z listy".equals(modeSelect.getValue())) {
-                    // ...
+
                     result = receptionService.bookAppointment(
                             slot.getIdTerminu(), patientCombo.getValue().getId(),
                             null, null, null, null, null, null,
                             reasonId, customNote,
-                            "Potwierdzona" // <--- DODAJEMY STATUS DLA REJESTRACJI
+                            "Potwierdzona"
                     );
                 } else {
-                    // ...
                     result = receptionService.bookAppointment(
                             slot.getIdTerminu(), null,
                             imieField.getValue(), nazwiskoField.getValue(), peselField.getValue(),
                             telField.getValue(), emailField.getValue(), adresField.getValue(),
                             reasonId, customNote,
-                            "Potwierdzona" // <--- DODAJEMY STATUS DLA REJESTRACJI
+                            "Potwierdzona"
                     );
                 }
 
@@ -396,7 +389,7 @@ public class ReceptionScheduleView extends VerticalLayout implements HasUrlParam
             currentStatusField.setValue(details.getStatus() != null ? details.getStatus() : "Brak");
             currentStatusField.setReadOnly(true);
             currentStatusField.setWidthFull();
-            currentStatusField.addThemeNames("small"); // Opcjonalnie mniejsza czcionka
+            currentStatusField.addThemeNames("small");
 
             Select<String> statusSelect = new Select<>();
             statusSelect.setLabel("Zmień status na");
@@ -442,7 +435,6 @@ public class ReceptionScheduleView extends VerticalLayout implements HasUrlParam
             HorizontalLayout buttonsLayout = new HorizontalLayout(saveStatusBtn, rescheduleBtn);
             buttonsLayout.setSpacing(true);
 
-            // Dodajemy currentStatusField do layoutu
             dialog.add(new VerticalLayout(patientName, peselField, phoneField, currentStatusField, statusSelect));
             dialog.getFooter().add(new Button("Zamknij", e -> dialog.close()));
             dialog.getFooter().add(buttonsLayout);

@@ -16,7 +16,6 @@ public class UserSession {
     }
 
     public UserSession() {
-
     }
 
     public static UserSession getLoggedInUser() {

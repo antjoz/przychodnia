@@ -104,7 +104,6 @@ public class AdminStatsView extends VerticalLayout {
 
     private Div createCard(String titleText, HorizontalLayout content) {
         Div card = new Div();
-        // Style karty
         card.getStyle().set("background-color", "white");
         card.getStyle().set("border-radius", "12px");
         card.getStyle().set("box-shadow", "0 4px 12px rgba(0,0,0,0.08)");
@@ -125,9 +124,9 @@ public class AdminStatsView extends VerticalLayout {
     private HorizontalLayout createChartContainer() {
         HorizontalLayout layout = new HorizontalLayout();
         layout.setWidthFull();
-        layout.setHeight("250px"); // Trochę wyższy wykres
+        layout.setHeight("250px");
         layout.setAlignItems(Alignment.END);
-        layout.getStyle().set("overflow-x", "auto"); // Przewijanie
+        layout.getStyle().set("overflow-x", "auto");
         layout.getStyle().set("padding-bottom", "10px");
         layout.getElement().executeJs("this.style.scrollbarWidth = 'thin';");
         return layout;
@@ -164,8 +163,8 @@ public class AdminStatsView extends VerticalLayout {
             VerticalLayout barWrapper = new VerticalLayout();
             barWrapper.setSpacing(false);
             barWrapper.setPadding(false);
-            barWrapper.setJustifyContentMode(JustifyContentMode.END); // Dół
-            barWrapper.setAlignItems(Alignment.CENTER); // Środek w poziomie
+            barWrapper.setJustifyContentMode(JustifyContentMode.END);
+            barWrapper.setAlignItems(Alignment.CENTER);
             barWrapper.setWidth("40px");
             barWrapper.getStyle().set("flex-shrink", "0");
             barWrapper.setHeight("100%");
@@ -177,7 +176,6 @@ public class AdminStatsView extends VerticalLayout {
             valueLabel.getStyle().set("margin-bottom", "4px");
             if (value == 0) valueLabel.setVisible(false);
 
-            // SŁUPEK (Bar)
             Div bar = new Div();
             bar.setWidth("20px");
 

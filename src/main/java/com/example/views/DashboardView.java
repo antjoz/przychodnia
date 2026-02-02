@@ -22,7 +22,6 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.stream.Collectors;
 
-// Adres: localhost:8080/panel
 @Route(value = "panel", layout = MainLayout.class)
 @PageTitle("Pulpit")
 public class DashboardView extends VerticalLayout {
@@ -55,9 +54,6 @@ public class DashboardView extends VerticalLayout {
         }
     }
 
-    // ==========================================
-    // SEKCJA 1: DASHBOARD DLA REJESTRACJI
-    // ==========================================
     private void createReceptionDashboard() {
         add(new H3("Wizyty oczekujące na akceptację Rejestracji"));
         add(new Paragraph("Zatwierdź termin, aby przekazać go do ostatecznego potwierdzenia przez pacjenta."));
@@ -69,12 +65,10 @@ public class DashboardView extends VerticalLayout {
         receptionGrid.addColumn(HarmonogramDTO::getLekarz).setHeader("Lekarz").setAutoWidth(true);
 
         receptionGrid.addComponentColumn(dto -> {
-            // Przycisk Akceptuj -> zmienia status na 'Wymaga_Pacjent'
             Button confirmBtn = new Button("Akceptuj", VaadinIcon.ARROW_RIGHT.create());
             confirmBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_SMALL);
             confirmBtn.addClickListener(e -> handleReceptionDecision(dto.getIdTerminu(), true));
 
-            // Przycisk Odrzuć -> Anuluje całkowicie
             Button rejectBtn = new Button("Odrzuć", VaadinIcon.CLOSE.create());
             rejectBtn.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_SMALL);
             rejectBtn.addClickListener(e -> handleReceptionDecision(dto.getIdTerminu(), false));
@@ -110,9 +104,6 @@ public class DashboardView extends VerticalLayout {
         }
     }
 
-    // ==========================================
-    // SEKCJA 2: DASHBOARD DLA PACJENTA
-    // ==========================================
     private void createPatientDashboard(int patientId) {
         add(new H3("Wizyty wymagające Twojego potwierdzenia"));
         add(new Paragraph("Rejestracja zaakceptowała termin. Kliknij 'Potwierdź', aby sfinalizować wizytę."));

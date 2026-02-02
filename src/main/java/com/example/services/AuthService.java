@@ -22,7 +22,6 @@ public class AuthService {
         public ValidationException(String message) { super(message); }
     }
 
-    // --- REJESTRACJA ---
     public void registerUser(String imie, String nazwisko, String pesel, String adres,
                              String login, String password, String telefon, String email) throws Exception {
 
@@ -30,7 +29,7 @@ public class AuthService {
 
             checkUniqueness(conn, login, email, telefon, pesel);
 
-            conn.setAutoCommit(false); // Start transakcji
+            conn.setAutoCommit(false);
 
             try {
                 String hashedPassword = BCrypt.hashpw(password, BCrypt.gensalt());
@@ -85,7 +84,6 @@ public class AuthService {
         }
     }
 
-    // --- LOGOWANIE ---
     public UserSession login(String loginInput, String passwordInput) throws ValidationException, Exception {
         String sql = "SELECT ID_Uzytkownika, Imie, Nazwisko, Haslo, Rola, Czy_aktywny FROM Uzytkownik WHERE Login = ?";
 
@@ -101,7 +99,6 @@ public class AuthService {
 
                     if (BCrypt.checkpw(passwordInput, dbHash)) {
 
-                        // SPRAWDZENIE CZY KONTO JEST AKTYWNE
                         if (!isActive) {
                             throw new ValidationException("Twoje konto jest zablokowane lub nieaktywne. Skontaktuj się z placówką.");
                         }

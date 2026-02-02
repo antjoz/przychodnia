@@ -59,8 +59,7 @@ public class DoctorScheduleView extends VerticalLayout {
             if ("Potwierdzona".equals(s)) badge.getElement().getThemeList().add("success");
             else if ("Odbyta".equals(s)) badge.getElement().getThemeList().add("contrast");
             else if ("Wolny".equals(s)) badge.getElement().getThemeList().add("primary");
-            else badge.getElement().getThemeList().add("error"); // Anulowana/Nieodbyta
-
+            else badge.getElement().getThemeList().add("error");
             return badge;
         }).setHeader("Status");
 

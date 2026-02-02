@@ -98,7 +98,6 @@ public class DoctorService {
         return null;
     }
 
-    // 3. Zapisz wizytę (Bez zmian strukturalnych, logika pozostaje ta sama)
     public void completeVisit(int terminId, String notatka, String status) throws SQLException {
         String query = """
             UPDATE Wizyta w

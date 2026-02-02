@@ -1,9 +1,9 @@
 package com.example.services;
 
+import com.example.security.UserValidator;
 import org.mindrot.jbcrypt.BCrypt;
 import com.example.data.UserDTO;
 import com.example.data.SpecjalizacjaDTO;
-import com.example.services.DatabaseConnectionService;
 
 import java.sql.*;
 import java.time.DayOfWeek;
@@ -14,7 +14,6 @@ import java.util.List;
 
 public class AdminService {
 
-    // --- REJESTRACJA LEKARZA ---
     public void registerDoctor(String imie, String nazwisko, String login, String haslo,
                                String email, String telefon,
                                LocalTime startPracy, LocalTime koniecPracy, int idSpecjalizacji) throws SQLException {
@@ -29,7 +28,6 @@ public class AdminService {
 
             String hashedPassword = BCrypt.hashpw(haslo, BCrypt.gensalt());
 
-            // 2. Wstawiamy do Uzytkownik
             String insertUserSql = "INSERT INTO Uzytkownik (Imie, Nazwisko, Login, Haslo, Rola, Email, Numer_telefonu, Czy_aktywny) VALUES (?, ?, ?, ?, 'Lekarz', ?, ?, TRUE)";
 
             int newUserId = -1;
@@ -45,7 +43,6 @@ public class AdminService {
                 if (rs.next()) newUserId = rs.getInt(1);
             }
 
-            // 3. Wstawiamy do Lekarz
             String insertDoctorSql = "INSERT INTO Lekarz (ID_Uzytkownika, Start_pracy, Koniec_pracy, ID_Specjalizacji) VALUES (?, ?, ?, ?)";
             try (PreparedStatement stmt = conn.prepareStatement(insertDoctorSql)) {
                 stmt.setInt(1, newUserId);
@@ -55,7 +52,6 @@ public class AdminService {
                 stmt.executeUpdate();
             }
 
-            // 4. Generujemy grafik
             generateSlotsForDoctor(conn, newUserId, startPracy, koniecPracy, LocalDate.now(), LocalDate.now().plusMonths(3));
 
             conn.commit();
@@ -67,17 +63,13 @@ public class AdminService {
         }
     }
 
-    // --- REJESTRACJA RECEPCJI ---
     public void registerReceptionist(String imie, String nazwisko, String login, String haslo,
                                      String email, String telefon) throws SQLException {
 
         try (Connection conn = DatabaseConnectionService.getConnection()) {
 
-            // 1. WALIDACJA
             UserValidator.checkUniqueness(conn, login, email, telefon, null);
-
             conn.setAutoCommit(false);
-
             String hashedPassword = BCrypt.hashpw(haslo, BCrypt.gensalt());
 
             String sqlUser = "INSERT INTO Uzytkownik (Imie, Nazwisko, Login, Haslo, Rola, Email, Numer_telefonu, Czy_aktywny) VALUES (?, ?, ?, ?, 'Rejestracja', ?, ?, TRUE)";
@@ -107,18 +99,14 @@ public class AdminService {
         }
     }
 
-    // --- HELPERY DO WALIDACJI ---
-
     private void checkUniqueness(Connection conn, String login, String email, String telefon, String pesel) throws SQLException {
-        // Zmieniam wyjątki na SQLException, aby pasowały do obsługi błędów w Twoim AdminUsersView
 
         if (exists(conn, "Uzytkownik", "Login", login))
-            throw new SQLException("LOGIN_ZAJETY"); // Ten konkretny string jest łapany w widoku!
+            throw new SQLException("LOGIN_ZAJETY");
 
         if (exists(conn, "Uzytkownik", "Email", email))
             throw new SQLException("Podany Email jest już przypisany do innego konta.");
 
-        // Walidacja formatu telefonu (opcjonalnie, skoro już tu jesteśmy)
         if (telefon != null && !telefon.matches("^[+]?[0-9]{9,15}$")) {
             throw new SQLException("Numer telefonu musi mieć od 9 do 15 cyfr (opcjonalnie z '+').");
         }
@@ -126,7 +114,6 @@ public class AdminService {
         if (exists(conn, "Uzytkownik", "Numer_telefonu", telefon))
             throw new SQLException("Podany numer telefonu istnieje już w systemie.");
 
-        // Sprawdzamy PESEL tylko jeśli został podany (dla lekarzy/recepcji jest null)
         if (pesel != null && !pesel.isEmpty()) {
             if (exists(conn, "Pacjent", "PESEL", pesel))
                 throw new SQLException("Pacjent o podanym numerze PESEL jest już zarejestrowany.");
