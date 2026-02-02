@@ -28,7 +28,7 @@ public class Application implements AppShellConfigurator, CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        System.out.println(">>> [START] Sprawdzanie obecności Administratora...");
+        System.out.println(">>> [START] Sprawdzanie oebecności Administratora...");
 
         try (Connection conn = DatabaseConnectionService.getConnection()) {
             String checkSql = "SELECT COUNT(*) FROM Uzytkownik WHERE Login = ?";

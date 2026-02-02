@@ -43,7 +43,7 @@ public class DashboardView extends VerticalLayout {
 
         add(new H2("Witaj w systemie, " + user.getImie() + "!"));
 
-        if ("Rejestracja".equals(user.getRola()) || "Admin".equals(user.getRola())) {
+        if ("Rejestracja".equals(user.getRola())) {
             createReceptionDashboard();
         }
         else if ("Pacjent".equals(user.getRola())) {
